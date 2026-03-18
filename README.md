@@ -6,7 +6,8 @@
 ![Electron](https://img.shields.io/badge/Electron-41-47848F?logo=electron)
 ![License](https://img.shields.io/badge/license-ISC-green)
 
-<!-- ![Screenshot](assets/screenshot.png) -->
+<!-- 스크린샷은 직접 캡처 후 assets/ 폴더에 저장하세요 -->
+<!-- ![Screenshot](assets/screenshot-popup.png) -->
 
 ---
 
@@ -81,7 +82,7 @@ Cost figures are **estimates** based on public API pricing — actual billing ma
 ### Option 2: From Source
 
 ```bash
-git clone <repo-url>
+git clone https://github.com/baekhj/claude-usage-monitor.git
 cd claude-usage-monitor
 npm install
 npm start
@@ -93,16 +94,17 @@ Node.js 18+ 가 설치되어 있어야 합니다.
 ### Option 3: Build .app / DMG directly
 
 ```bash
-git clone <repo-url>
+git clone https://github.com/baekhj/claude-usage-monitor.git
 cd claude-usage-monitor
 npm install
 
-# .app만 생성 (빠름)
-npm run build:dir
-open dist/mac/Claude\ Usage\ Monitor.app
+# Apple Silicon (M1/M2/M3/M4)
+npm run build:dir -- --arm64
+open dist/mac-arm64/Claude\ Usage\ Monitor.app
 
-# DMG 생성 (배포용)
-npm run build
+# Intel Mac
+npm run build:dir -- --x64
+open dist/mac/Claude\ Usage\ Monitor.app
 ```
 
 ## Usage
@@ -190,6 +192,7 @@ claude-usage-monitor/
 - **Requires Claude Code login** — no standalone API key support
 - **Cost estimates are approximate** — based on public pricing, may not match actual billing
 - **Launch at login** requires a signed/notarized build to work properly
+- **Not code-signed** — macOS Gatekeeper may block first launch (bypass via System Settings → Privacy & Security)
 
 ## Credits
 

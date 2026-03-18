@@ -6,13 +6,18 @@
 
 body {
   font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', sans-serif;
-  background: #1a1a2e;
+  background: #12121f;
   color: #e0e0e0;
   font-size: 13px;
   overflow-y: auto;
   overflow-x: hidden;
   -webkit-app-region: no-drag;
 }
+
+body::-webkit-scrollbar { width: 6px; }
+body::-webkit-scrollbar-track { background: transparent; }
+body::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 3px; }
+body::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.2); }
 
 .hidden { display: none !important; }
 
@@ -67,8 +72,9 @@ header h1 {
 /* Card */
 .card {
   background: #16213e;
-  border-radius: 10px;
-  padding: 12px;
+  border-radius: 12px;
+  padding: 14px;
+  border: 1px solid rgba(255,255,255,0.04);
 }
 
 .card-header {
@@ -116,9 +122,10 @@ header h1 {
 }
 
 .usage-pct {
-  font-size: 28px;
+  font-size: 32px;
   font-weight: 700;
   color: #6ee7b7;
+  letter-spacing: -1px;
 }
 
 .usage-pct.warning { color: #fbbf24; }

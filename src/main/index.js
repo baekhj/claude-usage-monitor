@@ -6,6 +6,7 @@ const { formatDuration, formatTokens, formatCost } = require('../shared/utils');
 const { REFRESH_INTERVAL_MS } = require('../shared/constants');
 const settings = require('./settings');
 const { getUsageFromAPI, getSubscriptionInfo } = require('./usage-api');
+const { startUpdateChecker, checkForUpdates } = require('./updater');
 
 let tray = null;
 let popupWindow = null;
@@ -19,9 +20,49 @@ let latestApiUsage = null;
 let firedSessionThresholds = new Set();
 let firedWeeklyThresholds = new Set();
 
+// ── Tray Icon ──
+function createTrayIcon(usagePct) {
+  // 16x16 @2x template icon — circle that fills based on usage
+  const size = 18;
+  const scale = 2;
+  const canvas = Buffer.alloc(size * scale * size * scale * 4); // RGBA
+  const w = size * scale;
+
+  // Determine color based on usage
+  let r = 110, g = 231, b = 183; // green
+  if (usagePct >= 80) { r = 248; g = 113; b = 113; } // red
+  else if (usagePct >= 60) { r = 251; g = 191; b = 36; } // yellow
+
+  const cx = w / 2, cy = w / 2, radius = w / 2 - 2;
+  const fillAngle = (usagePct / 100) * Math.PI * 2 - Math.PI / 2;
+
+  for (let y = 0; y < w; y++) {
+    for (let x = 0; x < w; x++) {
+      const dx = x - cx, dy = y - cy;
+      const dist = Math.sqrt(dx * dx + dy * dy);
+      const idx = (y * w + x) * 4;
+
+      if (dist <= radius && dist >= radius - 3) {
+        // Ring outline
+        canvas[idx] = 180; canvas[idx + 1] = 180; canvas[idx + 2] = 200; canvas[idx + 3] = 200;
+      } else if (dist < radius - 3) {
+        // Fill based on usage (pie-style from top)
+        const angle = Math.atan2(dy, dx);
+        if (usagePct >= 100 || angle <= fillAngle) {
+          canvas[idx] = r; canvas[idx + 1] = g; canvas[idx + 2] = b; canvas[idx + 3] = 220;
+        } else {
+          canvas[idx] = 60; canvas[idx + 1] = 60; canvas[idx + 2] = 80; canvas[idx + 3] = 100;
+        }
+      }
+    }
+  }
+
+  return nativeImage.createFromBuffer(canvas, { width: w, height: w, scaleFactor: scale });
+}
+
 // ── Tray ──
 function createTray() {
-  const icon = nativeImage.createEmpty();
+  const icon = createTrayIcon(0);
   tray = new Tray(icon);
   tray.setTitle('Loading...');
 
@@ -188,6 +229,12 @@ function buildTrayTitle(stats) {
 function updateTrayTitle(stats) {
   if (!tray) return;
   tray.setTitle(buildTrayTitle(stats));
+
+  // Update icon based on usage
+  const pct = getApiPercent();
+  if (pct) {
+    tray.setImage(createTrayIcon(pct.used));
+  }
 }
 
 // ── Data flow ──
@@ -263,6 +310,7 @@ ipcMain.handle('get-menubar-items', () => settings.MENUBAR_ITEMS);
 ipcMain.handle('get-subscription-info', () => getSubscriptionInfo());
 ipcMain.handle('refresh-api-usage', async () => { await refreshApiUsage(); return latestApiUsage; });
 ipcMain.handle('open-dashboard', () => openDashboard());
+ipcMain.handle('check-for-updates', () => checkForUpdates());
 
 // ── App lifecycle ──
 app.whenReady().then(() => {
@@ -277,6 +325,7 @@ app.whenReady().then(() => {
 
   refreshApiUsage();
   restartUsageTimer();
+  startUpdateChecker();
 
   watcher = new JsonlWatcher(() => updateStats());
   watcher.start();
