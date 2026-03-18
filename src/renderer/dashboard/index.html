@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Claude Usage Dashboard</title>
+  <link rel="stylesheet" href="dashboard.css">
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>Claude Usage Dashboard</h1>
+      <span id="refresh-time" class="subtitle"></span>
+    </header>
+
+    <!-- API limits -->
+    <section class="card usage-card">
+      <div class="usage-grid">
+        <div class="usage-col">
+          <div class="usage-label">5-Hour Limit</div>
+          <div id="usage-5h" class="usage-pct">--%</div>
+          <div class="progress-bar"><div id="progress-5h" class="progress-fill"></div></div>
+          <div id="reset-5h" class="usage-reset">--</div>
+        </div>
+        <div class="usage-col">
+          <div class="usage-label">7-Day Limit</div>
+          <div id="usage-7d" class="usage-pct">--%</div>
+          <div class="progress-bar"><div id="progress-7d" class="progress-fill"></div></div>
+          <div id="reset-7d" class="usage-reset">--</div>
+        </div>
+      </div>
+    </section>
+
+    <div class="grid-2col">
+      <!-- By Model -->
+      <section class="card">
+        <div class="card-header"><span class="card-title">By Model (All Time)</span></div>
+        <div id="model-table" class="table-wrap"></div>
+      </section>
+
+      <!-- By Project -->
+      <section class="card">
+        <div class="card-header"><span class="card-title">By Project (All Time)</span></div>
+        <div id="project-table" class="table-wrap"></div>
+      </section>
+    </div>
+
+    <!-- Daily table -->
+    <section class="card">
+      <div class="card-header"><span class="card-title">Daily Breakdown (7 Days)</span></div>
+      <div id="daily-table" class="table-wrap"></div>
+    </section>
+
+    <!-- Weekly chart -->
+    <section class="card">
+      <div class="card-header"><span class="card-title">Weekly Cost Chart</span></div>
+      <div id="weekly-chart" class="chart-lg"></div>
+    </section>
+  </div>
+  <script src="dashboard.js"></script>
+</body>
+</html>

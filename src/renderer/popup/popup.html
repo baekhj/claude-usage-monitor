@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Claude Usage Monitor</title>
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <div class="container" id="main-view">
+    <header>
+      <h1>Claude Usage</h1>
+      <div class="header-right">
+        <span id="refresh-time" class="subtitle"></span>
+        <button id="settings-btn" class="icon-btn" title="Settings">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="3"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/>
+          </svg>
+        </button>
+      </div>
+    </header>
+
+    <!-- API Usage: 5h + 7d -->
+    <section class="card" id="api-usage-card">
+      <div class="usage-grid">
+        <div class="usage-col">
+          <div class="usage-label">5-Hour Limit</div>
+          <div id="usage-5h" class="usage-pct">--%</div>
+          <div class="progress-bar">
+            <div id="progress-5h" class="progress-fill"></div>
+          </div>
+          <div id="reset-5h" class="usage-reset">--</div>
+        </div>
+        <div class="usage-col">
+          <div class="usage-label">7-Day Limit</div>
+          <div id="usage-7d" class="usage-pct">--%</div>
+          <div class="progress-bar">
+            <div id="progress-7d" class="progress-fill"></div>
+          </div>
+          <div id="reset-7d" class="usage-reset">--</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 5-hour block detail -->
+    <section class="card">
+      <div class="card-header">
+        <span class="card-title">5-Hour Block</span>
+        <span id="block-remaining" class="badge">--</span>
+      </div>
+      <div class="stats-row">
+        <div class="stat">
+          <span class="stat-label">Input</span>
+          <span id="block-input" class="stat-value">--</span>
+        </div>
+        <div class="stat">
+          <span class="stat-label">Output</span>
+          <span id="block-output" class="stat-value">--</span>
+        </div>
+        <div class="stat">
+          <span class="stat-label">Cost</span>
+          <span id="block-cost" class="stat-value">--</span>
+        </div>
+        <div class="stat">
+          <span class="stat-label">Requests</span>
+          <span id="block-requests" class="stat-value">--</span>
+        </div>
+      </div>
+      <div id="block-models" class="model-breakdown"></div>
+    </section>
+
+    <!-- Today -->
+    <section class="card">
+      <div class="card-header">
+        <span class="card-title">Today</span>
+      </div>
+      <div class="stats-row">
+        <div class="stat">
+          <span class="stat-label">Input</span>
+          <span id="today-input" class="stat-value">--</span>
+        </div>
+        <div class="stat">
+          <span class="stat-label">Output</span>
+          <span id="today-output" class="stat-value">--</span>
+        </div>
+        <div class="stat">
+          <span class="stat-label">Cost</span>
+          <span id="today-cost" class="stat-value">--</span>
+        </div>
+        <div class="stat">
+          <span class="stat-label">Requests</span>
+          <span id="today-requests" class="stat-value">--</span>
+        </div>
+      </div>
+      <div id="today-models" class="model-breakdown"></div>
+    </section>
+
+    <!-- Weekly chart -->
+    <section class="card">
+      <div class="card-header">
+        <span class="card-title">This Week</span>
+      </div>
+      <div id="weekly-chart" class="chart"></div>
+    </section>
+  </div>
+
+  <!-- Settings view -->
+  <div class="container hidden" id="settings-view">
+    <header>
+      <button id="settings-back" class="icon-btn" title="Back">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M19 12H5M12 19l-7-7 7-7"/>
+        </svg>
+      </button>
+      <h1>Settings</h1>
+      <div style="width:28px"></div>
+    </header>
+
+    <section class="card">
+      <p class="settings-desc">Choose items to display in the menubar. Drag to reorder.</p>
+      <div id="menubar-items-list" class="settings-list"></div>
+    </section>
+
+    <section class="card">
+      <div class="card-header">
+        <span class="card-title">API Refresh Interval</span>
+      </div>
+      <p class="settings-desc">How often to poll usage data from API (seconds).</p>
+      <div class="refresh-input-row">
+        <input type="number" id="refresh-input" min="10" max="3600" step="1" value="300" class="refresh-input">
+        <span class="refresh-unit">sec</span>
+        <span id="refresh-display" class="refresh-display">5m</span>
+      </div>
+    </section>
+
+    <section class="card">
+      <div class="card-header">
+        <span class="card-title">Separator</span>
+      </div>
+      <div class="separator-options">
+        <button class="sep-btn" data-sep=" &middot; "> &middot; </button>
+        <button class="sep-btn" data-sep=" | "> | </button>
+        <button class="sep-btn" data-sep="  ">space</button>
+        <button class="sep-btn" data-sep=" / "> / </button>
+      </div>
+    </section>
+
+    <section class="card">
+      <div class="card-header">
+        <span class="card-title">Notifications</span>
+      </div>
+      <label class="toggle-row">
+        <input type="checkbox" id="notif-enabled">
+        <span>Enable usage alerts</span>
+      </label>
+      <p class="settings-desc" style="margin-top:8px">5h alert thresholds (%)</p>
+      <input type="text" id="notif-thresholds" class="text-input" placeholder="50, 75, 90">
+      <p class="settings-desc" style="margin-top:8px">7d alert thresholds (%)</p>
+      <input type="text" id="notif-weekly" class="text-input" placeholder="75, 90">
+    </section>
+
+    <section class="card">
+      <div class="card-header">
+        <span class="card-title">General</span>
+      </div>
+      <label class="toggle-row">
+        <input type="checkbox" id="launch-login">
+        <span>Launch at login</span>
+      </label>
+    </section>
+
+    <section class="card">
+      <div class="card-header">
+        <span class="card-title">Preview</span>
+      </div>
+      <div id="menubar-preview" class="preview-bar">--</div>
+    </section>
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+</html>

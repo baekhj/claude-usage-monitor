@@ -1,0 +1,35 @@
+{
+  "name": "claude-usage-monitor",
+  "version": "1.0.0",
+  "description": "macOS menubar app for monitoring Claude Code token usage",
+  "main": "src/main/index.js",
+  "scripts": {
+    "start": "electron .",
+    "dev": "electron . --dev",
+    "build": "electron-builder --mac",
+    "build:dir": "electron-builder --mac --dir"
+  },
+  "build": {
+    "appId": "com.claude-usage-monitor",
+    "productName": "Claude Usage Monitor",
+    "mac": {
+      "category": "public.app-category.developer-tools",
+      "target": ["dmg", "zip"],
+      "icon": "assets/icon.icns"
+    },
+    "files": [
+      "src/**/*",
+      "!src/**/*.map"
+    ],
+    "directories": {
+      "output": "dist"
+    }
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "electron": "^41.0.2",
+    "electron-builder": "^26.8.1"
+  }
+}

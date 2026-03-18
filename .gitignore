@@ -1,0 +1,7 @@
+node_modules/
+dist/
+*.dmg
+.DS_Store
+.claude/
+docs/.bkit-memory.json
+docs/.pdca-status.json
