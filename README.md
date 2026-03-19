@@ -70,14 +70,30 @@ Cost figures are **estimates** based on public API pricing — actual billing ma
 
 ## Installation
 
-### Option 1: DMG (recommended)
+### 사전 요구사항
 
-1. [Releases](../../releases)에서 `Claude-Usage-Monitor-x.x.x.dmg` 다운로드
-2. DMG를 열고 `Claude Usage Monitor.app`을 `Applications` 폴더로 드래그
+- **Claude Code CLI**가 설치되어 있고 **로그인된 상태**여야 합니다 (Pro / Max / Team 구독)
+- 로그인이 안 되어 있으면 터미널에서 `claude` 실행 후 로그인하세요
+- 로그인하면 macOS Keychain에 인증 정보가 자동 저장됩니다
+
+### Option 1: .app 파일 직접 전달받은 경우
+
+1. `Claude Usage Monitor.app`을 `Applications` 폴더로 복사
+2. **터미널에서 보안 해제** (서명되지 않은 앱이라 필수):
+   ```bash
+   xattr -cr /Applications/Claude\ Usage\ Monitor.app
+   ```
 3. Applications에서 실행
+4. Keychain 접근 팝업이 뜨면 → **"항상 허용(Always Allow)"** 클릭
 
-> 서명되지 않은 앱이므로 처음 실행 시 "확인되지 않은 개발자" 경고가 나올 수 있습니다.
-> **System Settings → Privacy & Security → "Open Anyway"** 클릭으로 실행할 수 있습니다.
+> `xattr` 명령 없이 실행하면 "손상되었기 때문에 열 수 없습니다" 에러가 발생합니다.
+> 또는 **System Settings → Privacy & Security → "Open Anyway"** 로도 가능합니다.
+
+### Option 2: DMG
+
+1. [Releases](../../releases)에서 `Claude-Usage-Monitor-x.x.x-arm64.dmg` 다운로드
+2. DMG를 열고 `Claude Usage Monitor.app`을 `Applications` 폴더로 드래그
+3. 위와 동일하게 `xattr -cr` 실행 후 앱 실행
 
 ### Option 2: From Source
 
@@ -109,12 +125,9 @@ open dist/mac/Claude\ Usage\ Monitor.app
 
 ## Usage
 
-앱을 실행하면 macOS 메뉴바에 사용량이 표시됩니다. (Dock 아이콘 없음)
+앱을 실행하면 macOS 메뉴바에 사용량이 표시됩니다. (Dock 아이콘 없음, 메뉴바 전용 앱)
 
 별도 로그인이 필요 없습니다 — Claude Code CLI에 로그인되어 있으면 자동으로 Keychain에서 인증 정보를 읽습니다.
-
-첫 실행 시 macOS가 "claude-usage-monitor가 Keychain에 접근하려 합니다" 팝업을 띄울 수 있습니다.
-"항상 허용(Always Allow)"을 클릭하세요.
 
 - **Left-click** menubar → popup dashboard
 - **Right-click** menubar → Refresh / Dashboard / Quit
