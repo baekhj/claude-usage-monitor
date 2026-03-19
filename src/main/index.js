@@ -6,7 +6,7 @@ const { formatDuration, formatTokens, formatCost } = require('../shared/utils');
 const { REFRESH_INTERVAL_MS } = require('../shared/constants');
 const settings = require('./settings');
 const { getUsageFromAPI, getSubscriptionInfo } = require('./usage-api');
-const { startUpdateChecker, checkForUpdates } = require('./updater');
+const { startUpdateChecker, checkForUpdates, downloadUpdate, installUpdate, openReleasePage } = require('./updater');
 
 let tray = null;      // text (left in menubar)
 let iconTray = null;  // pie icons (right in menubar, created first)
@@ -348,6 +348,17 @@ ipcMain.handle('get-subscription-info', () => getSubscriptionInfo());
 ipcMain.handle('refresh-api-usage', async () => { await refreshApiUsage(); return latestApiUsage; });
 ipcMain.handle('open-dashboard', () => openDashboard());
 ipcMain.handle('check-for-updates', () => checkForUpdates());
+
+ipcMain.handle('download-update', async () => {
+  const sendProgress = (progress) => {
+    if (popupWindow && !popupWindow.isDestroyed()) popupWindow.webContents.send('update-progress', progress);
+    if (dashboardWindow && !dashboardWindow.isDestroyed()) dashboardWindow.webContents.send('update-progress', progress);
+  };
+  return downloadUpdate(sendProgress);
+});
+
+ipcMain.handle('install-update', (event, filePath) => installUpdate(filePath));
+ipcMain.handle('open-release-page', () => openReleasePage());
 
 // ── App lifecycle ──
 app.whenReady().then(() => {

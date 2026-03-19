@@ -11,4 +11,12 @@ contextBridge.exposeInMainWorld('api', {
   onStatsUpdate: (callback) => {
     ipcRenderer.on('stats-update', (event, data) => callback(data));
   },
+  // Update APIs
+  checkForUpdates: () => ipcRenderer.invoke('check-for-updates'),
+  downloadUpdate: () => ipcRenderer.invoke('download-update'),
+  installUpdate: (filePath) => ipcRenderer.invoke('install-update', filePath),
+  openReleasePage: () => ipcRenderer.invoke('open-release-page'),
+  onUpdateProgress: (callback) => {
+    ipcRenderer.on('update-progress', (event, data) => callback(data));
+  },
 });

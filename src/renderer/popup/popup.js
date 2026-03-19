@@ -340,11 +340,160 @@ document.getElementById('launch-login').addEventListener('change', async (e) => 
 document.getElementById('settings-btn').addEventListener('click', showSettings);
 document.getElementById('settings-back').addEventListener('click', hideSettings);
 
+// ── Update ──
+let updateState = { status: 'idle', info: null, downloadResult: null }; // idle | checking | available | downloading | downloaded | upToDate | error
+
+function renderUpdateUI() {
+  const statusEl = document.getElementById('update-status');
+  const actionsEl = document.getElementById('update-actions');
+  const progressWrap = document.getElementById('update-progress-wrap');
+  const versionEl = document.getElementById('update-version');
+
+  versionEl.textContent = `v${updateState.info?.current || '--'}`;
+  progressWrap.classList.add('hidden');
+
+  switch (updateState.status) {
+    case 'idle':
+      statusEl.innerHTML = '<span class="update-msg">Click to check for updates</span>';
+      actionsEl.innerHTML = '<button id="btn-check-update" class="update-btn">Check for Updates</button>';
+      break;
+    case 'checking':
+      statusEl.innerHTML = '<span class="update-msg">Checking for updates...</span>';
+      actionsEl.innerHTML = '<button class="update-btn" disabled>Checking...</button>';
+      break;
+    case 'upToDate':
+      statusEl.innerHTML = '<span class="update-msg">You\'re on the latest version.</span>';
+      actionsEl.innerHTML = '<button id="btn-check-update" class="update-btn secondary">Check Again</button>';
+      break;
+    case 'available': {
+      const info = updateState.info;
+      let html = `<span class="update-msg available">New version available: ${info.latest}</span>`;
+      if (info.releaseNotes) {
+        html += `<div class="update-release-notes">${escapeHtml(info.releaseNotes)}</div>`;
+      }
+      statusEl.innerHTML = html;
+      actionsEl.innerHTML = `
+        <button id="btn-download-update" class="update-btn">Download</button>
+        <button id="btn-release-page" class="update-btn secondary">Release Page</button>
+      `;
+      break;
+    }
+    case 'downloading':
+      statusEl.innerHTML = '<span class="update-msg">Downloading update...</span>';
+      progressWrap.classList.remove('hidden');
+      actionsEl.innerHTML = '<button class="update-btn" disabled>Downloading...</button>';
+      break;
+    case 'downloaded':
+      statusEl.innerHTML = '<span class="update-msg available">Download complete. Ready to install.</span>';
+      actionsEl.innerHTML = `
+        <button id="btn-install-update" class="update-btn">Quit & Install</button>
+        <button id="btn-release-page" class="update-btn secondary">Release Page</button>
+      `;
+      break;
+    case 'error':
+      statusEl.innerHTML = `<span class="update-msg error">Error: ${escapeHtml(updateState.errorMsg || 'Unknown error')}</span>`;
+      actionsEl.innerHTML = '<button id="btn-check-update" class="update-btn">Try Again</button>';
+      break;
+  }
+
+  bindUpdateButtons();
+}
+
+function bindUpdateButtons() {
+  const checkBtn = document.getElementById('btn-check-update');
+  const downloadBtn = document.getElementById('btn-download-update');
+  const installBtn = document.getElementById('btn-install-update');
+  const releaseBtn = document.getElementById('btn-release-page');
+
+  if (checkBtn) checkBtn.addEventListener('click', onCheckUpdate);
+  if (downloadBtn) downloadBtn.addEventListener('click', onDownloadUpdate);
+  if (installBtn) installBtn.addEventListener('click', onInstallUpdate);
+  if (releaseBtn) releaseBtn.addEventListener('click', () => window.api.openReleasePage());
+}
+
+async function onCheckUpdate() {
+  updateState.status = 'checking';
+  renderUpdateUI();
+  try {
+    const result = await window.api.checkForUpdates();
+    updateState.info = result;
+    if (result.error) {
+      updateState.status = 'error';
+      updateState.errorMsg = result.error;
+    } else if (result.available) {
+      updateState.status = 'available';
+    } else {
+      updateState.status = 'upToDate';
+    }
+  } catch (e) {
+    updateState.status = 'error';
+    updateState.errorMsg = e.message;
+  }
+  renderUpdateUI();
+}
+
+async function onDownloadUpdate() {
+  updateState.status = 'downloading';
+  renderUpdateUI();
+  try {
+    const result = await window.api.downloadUpdate();
+    updateState.downloadResult = result;
+    updateState.status = 'downloaded';
+  } catch (e) {
+    updateState.status = 'error';
+    updateState.errorMsg = e.message;
+  }
+  renderUpdateUI();
+}
+
+async function onInstallUpdate() {
+  if (!updateState.downloadResult?.filePath) return;
+  try {
+    await window.api.installUpdate(updateState.downloadResult.filePath);
+  } catch (e) {
+    updateState.status = 'error';
+    updateState.errorMsg = e.message;
+    renderUpdateUI();
+  }
+}
+
+function escapeHtml(str) {
+  return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
+
+window.api.onUpdateProgress((progress) => {
+  if (updateState.status !== 'downloading') return;
+  const bar = document.getElementById('update-progress-bar');
+  const text = document.getElementById('update-progress-text');
+  if (bar) bar.style.width = `${progress.percent}%`;
+  if (text) {
+    if (progress.total > 0) {
+      const mb = (progress.downloaded / (1024 * 1024)).toFixed(1);
+      const totalMb = (progress.total / (1024 * 1024)).toFixed(1);
+      text.textContent = `${mb}/${totalMb} MB`;
+    } else {
+      text.textContent = `${progress.percent}%`;
+    }
+  }
+});
+
 // ── Init ──
 (async () => {
   allMenubarItems = await window.api.getMenubarItems();
   const data = await window.api.getStats();
   updateUI(data);
+
+  // Init update section with current version
+  const info = await window.api.checkForUpdates();
+  updateState.info = info;
+  if (info?.error) {
+    updateState.status = 'idle';
+  } else if (info?.available) {
+    updateState.status = 'available';
+  } else {
+    updateState.status = 'upToDate';
+  }
+  renderUpdateUI();
 })();
 
 window.api.onStatsUpdate(updateUI);

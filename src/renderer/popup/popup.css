@@ -454,3 +454,100 @@ header h1 {
   text-align: center;
   letter-spacing: 0.3px;
 }
+
+/* Update section */
+.update-status {
+  margin-bottom: 10px;
+}
+
+.update-msg {
+  font-size: 12px;
+  color: #888;
+  line-height: 1.4;
+}
+
+.update-msg.available {
+  color: #6ee7b7;
+}
+
+.update-msg.error {
+  color: #f87171;
+}
+
+.update-release-notes {
+  font-size: 11px;
+  color: #777;
+  margin-top: 6px;
+  padding: 8px;
+  background: rgba(255,255,255,0.03);
+  border-radius: 6px;
+  max-height: 80px;
+  overflow-y: auto;
+  line-height: 1.4;
+  white-space: pre-wrap;
+}
+
+.update-progress-wrap {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.update-progress-text {
+  font-size: 12px;
+  color: #6ee7b7;
+  font-weight: 600;
+  min-width: 36px;
+  text-align: right;
+}
+
+.update-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.update-btn {
+  flex: 1;
+  padding: 8px 12px;
+  background: rgba(110, 231, 183, 0.12);
+  border: 1px solid rgba(110, 231, 183, 0.25);
+  border-radius: 6px;
+  color: #6ee7b7;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.update-btn:hover {
+  background: rgba(110, 231, 183, 0.2);
+  border-color: #6ee7b7;
+}
+
+.update-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.update-btn.danger {
+  background: rgba(248, 113, 113, 0.12);
+  border-color: rgba(248, 113, 113, 0.25);
+  color: #f87171;
+}
+
+.update-btn.danger:hover {
+  background: rgba(248, 113, 113, 0.2);
+  border-color: #f87171;
+}
+
+.update-btn.secondary {
+  background: rgba(255,255,255,0.06);
+  border-color: rgba(255,255,255,0.12);
+  color: #aaa;
+}
+
+.update-btn.secondary:hover {
+  background: rgba(255,255,255,0.1);
+  color: #fff;
+}
