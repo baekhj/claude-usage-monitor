@@ -8,7 +8,8 @@ const settings = require('./settings');
 const { getUsageFromAPI, getSubscriptionInfo } = require('./usage-api');
 const { startUpdateChecker, checkForUpdates } = require('./updater');
 
-let tray = null;
+let tray = null;      // text (left in menubar)
+let iconTray = null;  // pie icons (right in menubar, created first)
 let popupWindow = null;
 let dashboardWindow = null;
 let watcher = null;
@@ -21,49 +22,89 @@ let firedSessionThresholds = new Set();
 let firedWeeklyThresholds = new Set();
 
 // ── Tray Icon ──
-function createTrayIcon(usagePct) {
-  // 16x16 @2x template icon — circle that fills based on usage
-  const size = 18;
-  const scale = 2;
-  const canvas = Buffer.alloc(size * scale * size * scale * 4); // RGBA
-  const w = size * scale;
+function pctColor(pct) {
+  if (pct >= 80) return [248, 113, 113]; // red
+  if (pct >= 60) return [251, 191, 36];  // yellow
+  return [110, 231, 183];                // green
+}
 
-  // Determine color based on usage
-  let r = 110, g = 231, b = 183; // green
-  if (usagePct >= 80) { r = 248; g = 113; b = 113; } // red
-  else if (usagePct >= 60) { r = 251; g = 191; b = 36; } // yellow
-
-  const cx = w / 2, cy = w / 2, radius = w / 2 - 2;
-  const fillAngle = (usagePct / 100) * Math.PI * 2 - Math.PI / 2;
+function drawPie(buf, w, offsetX, radius, pct) {
+  const [r, g, b] = pctColor(pct);
+  const cx = offsetX + radius, cy = w / 2;
+  const fillRatio = Math.min(1, Math.max(0, pct / 100));
 
   for (let y = 0; y < w; y++) {
-    for (let x = 0; x < w; x++) {
+    for (let x = offsetX; x < offsetX + radius * 2; x++) {
       const dx = x - cx, dy = y - cy;
       const dist = Math.sqrt(dx * dx + dy * dy);
-      const idx = (y * w + x) * 4;
+      const idx = (y * (buf._totalW || w) + x) * 4;
+      if (idx < 0 || idx + 3 >= buf.length) continue;
 
-      if (dist <= radius && dist >= radius - 3) {
-        // Ring outline
-        canvas[idx] = 180; canvas[idx + 1] = 180; canvas[idx + 2] = 200; canvas[idx + 3] = 200;
-      } else if (dist < radius - 3) {
-        // Fill based on usage (pie-style from top)
-        const angle = Math.atan2(dy, dx);
-        if (usagePct >= 100 || angle <= fillAngle) {
-          canvas[idx] = r; canvas[idx + 1] = g; canvas[idx + 2] = b; canvas[idx + 3] = 220;
+      if (dist <= radius && dist >= radius - 2) {
+        buf[idx] = 160; buf[idx+1] = 160; buf[idx+2] = 180; buf[idx+3] = 180;
+      } else if (dist < radius - 2) {
+        // Angle from top (12 o'clock), clockwise, 0~1 range
+        const angle = Math.atan2(dx, -dy); // top=0, clockwise
+        const normalized = (angle < 0 ? angle + Math.PI * 2 : angle) / (Math.PI * 2);
+        const filled = pct >= 100 || normalized <= fillRatio;
+
+        if (filled) {
+          buf[idx] = r; buf[idx+1] = g; buf[idx+2] = b; buf[idx+3] = 220;
         } else {
-          canvas[idx] = 60; canvas[idx + 1] = 60; canvas[idx + 2] = 80; canvas[idx + 3] = 100;
+          buf[idx] = 50; buf[idx+1] = 50; buf[idx+2] = 70; buf[idx+3] = 90;
         }
       }
     }
   }
+}
 
-  return nativeImage.createFromBuffer(canvas, { width: w, height: w, scaleFactor: scale });
+function createTrayIcon(pct5h, pct7d) {
+  const items = settings.get().menubar.items || [];
+  const show5h = items.includes('icon5h');
+  const show7d = items.includes('icon7d');
+
+  const scale = 2;
+  const pieSize = 14 * scale; // diameter per pie
+  const gap = 3 * scale;
+  const count = (show5h ? 1 : 0) + (show7d ? 1 : 0);
+
+  if (count === 0) return nativeImage.createEmpty();
+
+  const totalW = count * pieSize + (count > 1 ? gap : 0);
+  const h = 18 * scale;
+  const buf = Buffer.alloc(totalW * h * 4);
+  buf._totalW = totalW;
+
+  let offsetX = 0;
+  if (show5h) {
+    drawPie(buf, h, offsetX, pieSize / 2, pct5h ?? 0);
+    offsetX += pieSize + gap;
+  }
+  if (show7d) {
+    drawPie(buf, h, offsetX, pieSize / 2, pct7d ?? 0);
+  }
+
+  return nativeImage.createFromBuffer(buf, { width: totalW, height: h, scaleFactor: scale });
 }
 
 // ── Tray ──
+function buildContextMenu() {
+  return Menu.buildFromTemplate([
+    { label: 'Refresh', click: () => refreshApiUsage() },
+    { label: 'Dashboard', click: () => openDashboard() },
+    { type: 'separator' },
+    { label: 'Quit', click: () => app.quit() },
+  ]);
+}
+
 function createTray() {
-  const icon = createTrayIcon(0);
-  tray = new Tray(icon);
+  // Icon tray created FIRST = rightmost in menubar
+  iconTray = new Tray(createTrayIcon(0, 0));
+  iconTray.on('click', (event, bounds) => togglePopup(bounds));
+  iconTray.on('right-click', () => iconTray.popUpContextMenu(buildContextMenu()));
+
+  // Text tray created SECOND = left of icon tray
+  tray = new Tray(nativeImage.createEmpty());
   tray.setTitle('Loading...');
 
   tray.on('click', (event, bounds) => {
@@ -71,13 +112,7 @@ function createTray() {
   });
 
   tray.on('right-click', () => {
-    const contextMenu = Menu.buildFromTemplate([
-      { label: 'Refresh', click: () => refreshApiUsage() },
-      { label: 'Dashboard', click: () => openDashboard() },
-      { type: 'separator' },
-      { label: 'Quit', click: () => app.quit() },
-    ]);
-    tray.popUpContextMenu(contextMenu);
+    tray.popUpContextMenu(buildContextMenu());
   });
 }
 
@@ -214,6 +249,10 @@ function buildTrayTitle(stats) {
         if (pct?.sessionReset) parts.push(formatDuration(pct.sessionReset - Date.now()));
         else parts.push(formatDuration(stats.block.remainingMs));
         break;
+      case 'weeklyReset':
+        if (pct?.weeklyReset) parts.push(`7d:${formatDuration(pct.weeklyReset - Date.now())}`);
+        else parts.push('7d:--');
+        break;
       case 'requests':    parts.push(`${stats.block.requestCount}req`); break;
       case 'reqToday':    parts.push(`${stats.today.requestCount}req`); break;
       case 'model': {
@@ -230,11 +269,9 @@ function updateTrayTitle(stats) {
   if (!tray) return;
   tray.setTitle(buildTrayTitle(stats));
 
-  // Update icon based on usage
+  // Update pie icon on iconTray (right side)
   const pct = getApiPercent();
-  if (pct) {
-    tray.setImage(createTrayIcon(pct.used));
-  }
+  if (iconTray) iconTray.setImage(createTrayIcon(pct?.used, pct?.weekly));
 }
 
 // ── Data flow ──

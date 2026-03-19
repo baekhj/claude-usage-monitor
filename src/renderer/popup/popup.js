@@ -265,6 +265,7 @@ function updatePreview() {
       case 'costBlock': parts.push(formatCost(stats.block.totalCost)); break;
       case 'costToday': parts.push(formatCost(stats.today.totalCost)); break;
       case 'remaining': parts.push(pct?.sessionReset ? formatDuration(pct.sessionReset - Date.now()) : formatDuration(stats.block.remainingMs)); break;
+      case 'weeklyReset': parts.push(pct?.weeklyReset ? `7d:${formatDuration(pct.weeklyReset - Date.now())}` : '7d:--'); break;
       case 'requests': parts.push(`${stats.block.requestCount}req`); break;
       case 'reqToday': parts.push(`${stats.today.requestCount}req`); break;
       case 'model': { const m = stats.block.lastModel; if (m) parts.push(shortModelName(m)); break; }

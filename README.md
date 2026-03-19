@@ -6,8 +6,19 @@
 ![Electron](https://img.shields.io/badge/Electron-41-47848F?logo=electron)
 ![License](https://img.shields.io/badge/license-ISC-green)
 
-<!-- 스크린샷은 직접 캡처 후 assets/ 폴더에 저장하세요 -->
-<!-- ![Screenshot](assets/screenshot-popup.png) -->
+<p align="center">
+  <img src="assets/screenshot-popup.png" alt="Popup Dashboard" width="380">
+</p>
+
+### Popup Dashboard
+
+| Section | Description |
+|---------|-------------|
+| **5-Hour Limit** | Anthropic API 기준 5시간 슬라이딩 윈도우 사용률(%). 프로그레스 바 + 리셋까지 남은 시간 |
+| **7-Day Limit** | 7일 사용률(%). 주간 한도 대비 현재 소비량 |
+| **5-Hour Block** | 로컬 JSONL 기반 상세 — Input/Output 토큰, 추정 비용, 요청 수. 모델별 breakdown (Opus/Sonnet/Haiku) |
+| **Today** | 오늘 하루 누적 사용량. 동일하게 모델별 breakdown 포함 |
+| **This Week** | 최근 7일간 일별 비용 바 차트. 오늘은 초록색으로 강조 |
 
 ---
 

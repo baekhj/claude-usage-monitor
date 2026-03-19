@@ -6,29 +6,32 @@ const SETTINGS_FILE = path.join(app.getPath('userData'), 'settings.json');
 
 const DEFAULTS = {
   menubar: {
-    items: ['usagePct', 'remaining', 'costToday'],
+    items: ['icon5h', 'icon7d', 'usagePct', 'remaining', 'costToday'],
     separator: ' · ',
   },
   apiRefreshSeconds: 300,
   notifications: {
     enabled: true,
-    thresholds: [50, 75, 90], // notify at these 5h usage %
+    thresholds: [50, 75, 90],
     weeklyThresholds: [75, 90],
   },
   launchAtLogin: false,
 };
 
 const MENUBAR_ITEMS = {
-  usagePct:    { label: '5h Usage %',         key: 'usagePct' },
-  remainPct:   { label: '5h Remaining %',     key: 'remainPct' },
-  weeklyPct:   { label: '7d Usage %',         key: 'weeklyPct' },
-  tokens:      { label: 'Block Tokens',       key: 'tokens' },
-  costBlock:   { label: 'Block Cost',         key: 'costBlock' },
-  costToday:   { label: 'Today Cost',         key: 'costToday' },
-  remaining:   { label: 'Block Remaining',    key: 'remaining' },
-  requests:    { label: 'Block Requests',     key: 'requests' },
-  reqToday:    { label: 'Today Requests',     key: 'reqToday' },
-  model:       { label: 'Active Model',       key: 'model' },
+  icon5h:      { label: '5h Pie Icon',        key: 'icon5h',      type: 'icon' },
+  icon7d:      { label: '7d Pie Icon',        key: 'icon7d',      type: 'icon' },
+  usagePct:    { label: '5h Usage %',         key: 'usagePct',    type: 'text' },
+  remainPct:   { label: '5h Remaining %',     key: 'remainPct',   type: 'text' },
+  weeklyPct:   { label: '7d Usage %',         key: 'weeklyPct',   type: 'text' },
+  tokens:      { label: 'Block Tokens',       key: 'tokens',      type: 'text' },
+  costBlock:   { label: 'Block Cost',         key: 'costBlock',   type: 'text' },
+  costToday:   { label: 'Today Cost',         key: 'costToday',   type: 'text' },
+  remaining:   { label: '5h Reset In',        key: 'remaining',   type: 'text' },
+  weeklyReset: { label: '7d Reset In',        key: 'weeklyReset', type: 'text' },
+  requests:    { label: 'Block Requests',     key: 'requests',    type: 'text' },
+  reqToday:    { label: 'Today Requests',     key: 'reqToday',    type: 'text' },
+  model:       { label: 'Active Model',       key: 'model',       type: 'text' },
 };
 
 let cached = null;
