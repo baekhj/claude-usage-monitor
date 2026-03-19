@@ -79,21 +79,21 @@ Cost figures are **estimates** based on public API pricing — actual billing ma
 ### Option 1: .app 파일 직접 전달받은 경우
 
 1. `Claude Usage Monitor.app`을 `Applications` 폴더로 복사
-2. **터미널에서 보안 해제** (서명되지 않은 앱이라 필수):
-   ```bash
-   xattr -cr /Applications/Claude\ Usage\ Monitor.app
-   ```
-3. Applications에서 실행
+2. 앱을 **우클릭(또는 Control+클릭) → "열기(Open)"** 클릭
+3. "확인되지 않은 개발자" 경고 팝업에서 **"열기(Open)"** 클릭
 4. Keychain 접근 팝업이 뜨면 → **"항상 허용(Always Allow)"** 클릭
 
-> `xattr` 명령 없이 실행하면 "손상되었기 때문에 열 수 없습니다" 에러가 발생합니다.
-> 또는 **System Settings → Privacy & Security → "Open Anyway"** 로도 가능합니다.
+> 이후 실행부터는 더블클릭으로 바로 열립니다. 터미널 명령은 필요 없습니다.
+>
+> 만약 "손상되었기 때문에 열 수 없습니다" 에러가 나오면:
+> - **System Settings → Privacy & Security** → 하단 **"Open Anyway"** 클릭
+> - 또는 터미널에서 `xattr -cr /Applications/Claude\ Usage\ Monitor.app` 실행
 
 ### Option 2: DMG
 
 1. [Releases](../../releases)에서 `Claude-Usage-Monitor-x.x.x-arm64.dmg` 다운로드
 2. DMG를 열고 `Claude Usage Monitor.app`을 `Applications` 폴더로 드래그
-3. 위와 동일하게 `xattr -cr` 실행 후 앱 실행
+3. 위와 동일하게 우클릭 → "열기" → 경고 팝업에서 "열기" 클릭
 
 ### Option 2: From Source
 
