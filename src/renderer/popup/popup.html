@@ -8,7 +8,10 @@
 <body>
   <div class="container" id="main-view">
     <header>
-      <h1>Claude Usage</h1>
+      <div class="header-left">
+        <h1>Claude Usage</h1>
+        <span id="plan-badge" class="plan-badge"></span>
+      </div>
       <div class="header-right">
         <span id="refresh-time" class="subtitle"></span>
         <button id="settings-btn" class="icon-btn" title="Settings">
@@ -116,8 +119,19 @@
     </header>
 
     <section class="card">
-      <p class="settings-desc">Choose items to display in the menubar. Drag to reorder.</p>
+      <div class="card-header">
+        <span class="card-title">Menubar Text</span>
+      </div>
+      <p class="settings-desc">Drag to reorder. Check to show.</p>
       <div id="menubar-items-list" class="settings-list"></div>
+    </section>
+
+    <section class="card">
+      <div class="card-header">
+        <span class="card-title">Pie Chart Icons</span>
+      </div>
+      <p class="settings-desc">Displayed on the right side of menubar.</p>
+      <div id="pie-items-list" class="settings-list"></div>
     </section>
 
     <section class="card">

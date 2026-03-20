@@ -24,6 +24,7 @@
     },
     "files": [
       "src/**/*",
+      "assets/tray-icon.png",
       "!src/**/*.map"
     ],
     "directories": {

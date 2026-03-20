@@ -16,7 +16,11 @@ contextBridge.exposeInMainWorld('api', {
   downloadUpdate: () => ipcRenderer.invoke('download-update'),
   installUpdate: (filePath) => ipcRenderer.invoke('install-update', filePath),
   openReleasePage: () => ipcRenderer.invoke('open-release-page'),
+  getUpdateState: () => ipcRenderer.invoke('get-update-state'),
   onUpdateProgress: (callback) => {
     ipcRenderer.on('update-progress', (event, data) => callback(data));
+  },
+  onUpdateState: (callback) => {
+    ipcRenderer.on('update-state', (event, data) => callback(data));
   },
 });

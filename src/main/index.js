@@ -8,7 +8,8 @@ const settings = require('./settings');
 const { getUsageFromAPI, getSubscriptionInfo } = require('./usage-api');
 const { startUpdateChecker, checkForUpdates, downloadUpdate, installUpdate, openReleasePage } = require('./updater');
 
-let tray = null;      // text tray (left)
+let appTray = null;   // app icon tray (leftmost)
+let tray = null;      // text tray (middle)
 let iconTray = null;  // pie icon tray (right)
 let popupWindow = null;
 let dashboardWindow = null;
@@ -96,16 +97,23 @@ function buildContextMenu() {
 }
 
 function createTray() {
-  // Icon tray (right side): colored pie charts
+  // 1. Icon tray (rightmost): colored pie charts
   iconTray = new Tray(createTrayIcon(0, 0));
   iconTray.on('click', (event, bounds) => togglePopup(bounds));
   iconTray.on('right-click', () => iconTray.popUpContextMenu(buildContextMenu()));
 
-  // Text tray (left side): system font for crisp rendering
+  // 2. Text tray (middle): system font for crisp rendering
   tray = new Tray(nativeImage.createEmpty());
   tray.setTitle('Loading...', { fontType: 'monospacedDigit' });
   tray.on('click', (event, bounds) => togglePopup(bounds));
   tray.on('right-click', () => tray.popUpContextMenu(buildContextMenu()));
+
+  // 3. App icon tray (leftmost): created last = appears leftmost
+  const iconPath = path.join(app.getAppPath(), 'assets', 'tray-icon.png');
+  const appIcon = nativeImage.createFromPath(iconPath);
+  appTray = new Tray(appIcon.resize({ width: 16, height: 16 }));
+  appTray.on('click', (event, bounds) => togglePopup(bounds));
+  appTray.on('right-click', () => appTray.popUpContextMenu(buildContextMenu()));
 }
 
 // ── Popup ──
@@ -263,6 +271,16 @@ function buildTrayTitle(stats) {
         if (m) { const s = m.replace(/^claude-/, '').replace(/-\d.*$/, ''); parts.push(s.charAt(0).toUpperCase() + s.slice(1)); }
         break;
       }
+      case 'plan': {
+        const sub = getSubscriptionInfo();
+        if (sub) {
+          const type = (sub.subscriptionType || '').charAt(0).toUpperCase() + (sub.subscriptionType || '').slice(1);
+          const tier = (sub.rateLimitTier || '');
+          const label = tier.includes('5x') ? 'Max 5x' : tier.includes('20x') ? 'Max 20x' : '';
+          parts.push(label ? `${type} ${label}` : type);
+        }
+        break;
+      }
     }
   }
   return parts.length > 0 ? parts.join(sep) : '--';
@@ -351,14 +369,37 @@ ipcMain.handle('refresh-api-usage', async () => { await refreshApiUsage(); retur
 ipcMain.handle('open-dashboard', () => openDashboard());
 ipcMain.handle('check-for-updates', () => checkForUpdates());
 
+// ── Update state (persists across popup open/close) ──
+let updateState = { status: 'idle', progress: null, result: null, error: null };
+// status: idle | downloading | downloaded | error
+
+function broadcastUpdateProgress(progress) {
+  updateState.progress = progress;
+  if (popupWindow && !popupWindow.isDestroyed()) popupWindow.webContents.send('update-progress', progress);
+  if (dashboardWindow && !dashboardWindow.isDestroyed()) dashboardWindow.webContents.send('update-progress', progress);
+}
+
 ipcMain.handle('download-update', async () => {
-  const sendProgress = (progress) => {
-    if (popupWindow && !popupWindow.isDestroyed()) popupWindow.webContents.send('update-progress', progress);
-    if (dashboardWindow && !dashboardWindow.isDestroyed()) dashboardWindow.webContents.send('update-progress', progress);
-  };
-  return downloadUpdate(sendProgress);
+  if (updateState.status === 'downloading') return { status: 'downloading' };
+  if (updateState.status === 'downloaded') return updateState.result;
+
+  updateState = { status: 'downloading', progress: null, result: null, error: null };
+  try {
+    const result = await downloadUpdate(broadcastUpdateProgress);
+    updateState.status = 'downloaded';
+    updateState.result = result;
+    // Notify popup if it's open
+    if (popupWindow && !popupWindow.isDestroyed()) popupWindow.webContents.send('update-state', updateState);
+    if (dashboardWindow && !dashboardWindow.isDestroyed()) dashboardWindow.webContents.send('update-state', updateState);
+    return result;
+  } catch (e) {
+    updateState.status = 'error';
+    updateState.error = e.message;
+    throw e;
+  }
 });
 
+ipcMain.handle('get-update-state', () => updateState);
 ipcMain.handle('install-update', (event, filePath) => installUpdate(filePath));
 ipcMain.handle('open-release-page', () => openReleasePage());
 

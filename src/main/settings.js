@@ -32,6 +32,7 @@ const MENUBAR_ITEMS = {
   requests:    { label: 'Block Requests',     key: 'requests',    type: 'text' },
   reqToday:    { label: 'Today Requests',     key: 'reqToday',    type: 'text' },
   model:       { label: 'Active Model',       key: 'model',       type: 'text' },
+  plan:        { label: 'Plan',              key: 'plan',        type: 'text' },
 };
 
 let cached = null;

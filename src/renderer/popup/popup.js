@@ -49,6 +49,16 @@ let currentSettings = null;
 let currentPercent = null;
 let allMenubarItems = {};
 
+// ── Plan Badge ──
+function formatPlan(sub) {
+  if (!sub) return '';
+  const type = (sub.subscriptionType || '').replace(/_/g, ' ');
+  const name = type.charAt(0).toUpperCase() + type.slice(1);
+  const tier = sub.rateLimitTier || '';
+  const tierLabel = tier.includes('5x') ? 'Max 5x' : tier.includes('20x') ? 'Max 20x' : '';
+  return tierLabel ? `${name} · ${tierLabel}` : name;
+}
+
 // ── Main View ──
 function updateUI({ stats, settings, apiUsage, percent }) {
   currentStats = stats;
@@ -182,9 +192,14 @@ function hideSettings() {
   document.getElementById('main-view').classList.remove('hidden');
 }
 
+const PIE_KEYS = ['icon5h', 'icon7d'];
+
 function renderSettingsList() {
-  const list = document.getElementById('menubar-items-list');
-  list.innerHTML = '';
+  const textList = document.getElementById('menubar-items-list');
+  const pieList = document.getElementById('pie-items-list');
+  textList.innerHTML = '';
+  pieList.innerHTML = '';
+
   const enabled = currentSettings?.menubar?.items || [];
   const allKeys = Object.keys(allMenubarItems);
   const orderedKeys = [...enabled, ...allKeys.filter(k => !enabled.includes(k))];
@@ -192,24 +207,35 @@ function renderSettingsList() {
   for (const key of orderedKeys) {
     const meta = allMenubarItems[key];
     if (!meta) continue;
+    const isPie = PIE_KEYS.includes(key);
     const isChecked = enabled.includes(key);
     const item = document.createElement('div');
     item.className = 'settings-item';
-    item.draggable = true;
     item.dataset.key = key;
 
-    item.innerHTML = `
-      <span class="drag-handle">\u2261</span>
-      <input type="checkbox" ${isChecked ? 'checked' : ''} data-key="${key}">
-      <span class="item-label">${meta.label}</span>
-    `;
-
-    item.querySelector('input').addEventListener('change', (e) => onToggleItem(key, e.target.checked));
-    item.addEventListener('dragstart', (e) => { e.dataTransfer.setData('text/plain', key); item.classList.add('dragging'); });
-    item.addEventListener('dragend', () => item.classList.remove('dragging'));
-    item.addEventListener('dragover', (e) => e.preventDefault());
-    item.addEventListener('drop', (e) => { e.preventDefault(); const fk = e.dataTransfer.getData('text/plain'); if (fk !== key) onReorder(fk, key); });
-    list.appendChild(item);
+    if (isPie) {
+      // Pie items: toggle only, no drag
+      item.innerHTML = `
+        <input type="checkbox" ${isChecked ? 'checked' : ''} data-key="${key}">
+        <span class="item-label">${meta.label}</span>
+      `;
+      item.querySelector('input').addEventListener('change', (e) => onToggleItem(key, e.target.checked));
+      pieList.appendChild(item);
+    } else {
+      // Text items: drag + toggle
+      item.draggable = true;
+      item.innerHTML = `
+        <span class="drag-handle">\u2261</span>
+        <input type="checkbox" ${isChecked ? 'checked' : ''} data-key="${key}">
+        <span class="item-label">${meta.label}</span>
+      `;
+      item.querySelector('input').addEventListener('change', (e) => onToggleItem(key, e.target.checked));
+      item.addEventListener('dragstart', (e) => { e.dataTransfer.setData('text/plain', key); item.classList.add('dragging'); });
+      item.addEventListener('dragend', () => item.classList.remove('dragging'));
+      item.addEventListener('dragover', (e) => e.preventDefault());
+      item.addEventListener('drop', (e) => { e.preventDefault(); const fk = e.dataTransfer.getData('text/plain'); if (fk !== key) onReorder(fk, key); });
+      textList.appendChild(item);
+    }
   }
 }
 
@@ -435,15 +461,16 @@ async function onCheckUpdate() {
 async function onDownloadUpdate() {
   updateState.status = 'downloading';
   renderUpdateUI();
-  try {
-    const result = await window.api.downloadUpdate();
+  // Don't await — let it run in background even if popup closes
+  window.api.downloadUpdate().then((result) => {
     updateState.downloadResult = result;
     updateState.status = 'downloaded';
-  } catch (e) {
+    renderUpdateUI();
+  }).catch((e) => {
     updateState.status = 'error';
     updateState.errorMsg = e.message;
-  }
-  renderUpdateUI();
+    renderUpdateUI();
+  });
 }
 
 async function onInstallUpdate() {
@@ -462,9 +489,11 @@ function escapeHtml(str) {
 }
 
 window.api.onUpdateProgress((progress) => {
-  if (updateState.status !== 'downloading') return;
+  updateState.status = 'downloading';
   const bar = document.getElementById('update-progress-bar');
   const text = document.getElementById('update-progress-text');
+  const progressWrap = document.getElementById('update-progress-wrap');
+  if (progressWrap) progressWrap.classList.remove('hidden');
   if (bar) bar.style.width = `${progress.percent}%`;
   if (text) {
     if (progress.total > 0) {
@@ -477,13 +506,58 @@ window.api.onUpdateProgress((progress) => {
   }
 });
 
+// Listen for background download completion
+window.api.onUpdateState((state) => {
+  if (state.status === 'downloaded' && state.result) {
+    updateState.status = 'downloaded';
+    updateState.downloadResult = state.result;
+    renderUpdateUI();
+  } else if (state.status === 'error') {
+    updateState.status = 'error';
+    updateState.errorMsg = state.error;
+    renderUpdateUI();
+  }
+});
+
 // ── Init ──
 (async () => {
   allMenubarItems = await window.api.getMenubarItems();
   const data = await window.api.getStats();
   updateUI(data);
 
-  // Init update section with current version
+  // Plan badge
+  const sub = await window.api.getSubscriptionInfo();
+  const badge = document.getElementById('plan-badge');
+  if (badge && sub) badge.textContent = formatPlan(sub);
+
+  // Restore download state from main process
+  const mainState = await window.api.getUpdateState();
+  if (mainState.status === 'downloading') {
+    const info = await window.api.checkForUpdates();
+    updateState.info = info;
+    updateState.status = 'downloading';
+    if (mainState.progress) {
+      // Show last known progress
+      setTimeout(() => {
+        const bar = document.getElementById('update-progress-bar');
+        const text = document.getElementById('update-progress-text');
+        if (bar) bar.style.width = `${mainState.progress.percent}%`;
+        if (text) text.textContent = `${mainState.progress.percent}%`;
+      }, 50);
+    }
+    renderUpdateUI();
+    return;
+  }
+  if (mainState.status === 'downloaded' && mainState.result) {
+    const info = await window.api.checkForUpdates();
+    updateState.info = info;
+    updateState.downloadResult = mainState.result;
+    updateState.status = 'downloaded';
+    renderUpdateUI();
+    return;
+  }
+
+  // Normal: check for updates
   const info = await window.api.checkForUpdates();
   updateState.info = info;
   if (info?.error) {
