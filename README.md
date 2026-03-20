@@ -95,18 +95,39 @@ Cost figures are **estimates** based on public API pricing — actual billing ma
 4. Keychain 접근 팝업이 뜨면 → **"항상 허용(Always Allow)"** 클릭
 
 > 이후 실행부터는 더블클릭으로 바로 열립니다. 터미널 명령은 필요 없습니다.
->
-> 만약 "손상되었기 때문에 열 수 없습니다" 에러가 나오면:
-> - **System Settings → Privacy & Security** → 하단 **"Open Anyway"** 클릭
-> - 또는 터미널에서 `xattr -cr /Applications/Claude\ Usage\ Monitor.app` 실행
 
-### Option 2: DMG
+#### ⚠️ "악성 소프트웨어" 또는 "손상되었기 때문에 열 수 없습니다" 에러가 나오는 경우
 
-1. [Releases](../../releases)에서 `Claude-Usage-Monitor-x.x.x-arm64.dmg` 다운로드
-2. DMG를 열고 `Claude Usage Monitor.app`을 `Applications` 폴더로 드래그
-3. 위와 동일하게 우클릭 → "열기" → 경고 팝업에서 "열기" 클릭
+이 앱은 Apple Developer 인증서로 서명되지 않았기 때문에 macOS Gatekeeper가 차단할 수 있습니다.
+악성 프로그램이 아니며, 소스 코드가 모두 공개되어 있습니다.
 
-### Option 2: From Source
+**방법 1: 터미널에서 차단 해제 (권장)**
+```bash
+xattr -cr /Applications/Claude\ Usage\ Monitor.app
+```
+실행 후 앱을 더블클릭하면 정상적으로 열립니다.
+
+**방법 2: 시스템 설정에서 허용**
+1. 앱을 한 번 더블클릭합니다 (차단됨)
+2. **시스템 설정 → 개인정보 보호 및 보안** 으로 이동
+3. 하단에 "Claude Usage Monitor이(가) 차단되었습니다" 메시지 옆 **"확인 없이 열기"** 클릭
+4. 앱을 다시 더블클릭
+
+**방법 3: 우클릭으로 열기**
+1. 앱을 **우클릭(또는 Control+클릭)** → **"열기"** 선택
+2. 경고 팝업에서 **"열기"** 클릭
+
+> 한 번 허용하면 이후부터는 더블클릭으로 바로 실행됩니다.
+
+### Option 2: DMG 또는 ZIP 다운로드
+
+1. [Releases](../../releases)에서 최신 버전 다운로드
+   - Apple Silicon (M1/M2/M3/M4): `*-arm64-mac.zip`
+   - Intel Mac: `*-mac.zip`
+2. ZIP 압축 해제 후 `Claude Usage Monitor.app`을 `Applications` 폴더로 이동
+3. 위의 Gatekeeper 우회 방법으로 실행
+
+### Option 3: From Source
 
 ```bash
 git clone https://github.com/baekhj/claude-usage-monitor.git
@@ -221,6 +242,10 @@ claude-usage-monitor/
 ## Credits
 
 The approach of reading rate-limit utilization from Messages API response headers was learned from [claude-code-stats](https://github.com/dmelo/claude-code-stats).
+
+## Disclaimer
+
+"Claude" is a trademark of Anthropic PBC. This application is an independent, unofficial tool and is **not affiliated with, endorsed by, or sponsored by Anthropic**. It uses only publicly documented APIs and locally stored data.
 
 ## License
 

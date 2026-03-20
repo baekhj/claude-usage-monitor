@@ -111,7 +111,7 @@ async function getUsageFromAPI() {
   try {
     const data = await fetchUsageViaHeaders(creds.accessToken);
     cachedUsageData = data;
-    lastFetchTime = now;
+    lastFetchTime = Date.now();
     return { available: true, data };
   } catch (err) {
     if (cachedUsageData) {
