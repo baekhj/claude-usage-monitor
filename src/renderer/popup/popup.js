@@ -202,41 +202,64 @@ function renderSettingsList() {
 
   const enabled = currentSettings?.menubar?.items || [];
   const allKeys = Object.keys(allMenubarItems);
-  const orderedKeys = [...enabled, ...allKeys.filter(k => !enabled.includes(k))];
+  const textKeys = [...enabled.filter(k => !PIE_KEYS.includes(k)), ...allKeys.filter(k => !PIE_KEYS.includes(k) && !enabled.includes(k))];
 
-  for (const key of orderedKeys) {
+  for (let i = 0; i < textKeys.length; i++) {
+    const key = textKeys[i];
     const meta = allMenubarItems[key];
     if (!meta) continue;
-    const isPie = PIE_KEYS.includes(key);
     const isChecked = enabled.includes(key);
     const item = document.createElement('div');
     item.className = 'settings-item';
     item.dataset.key = key;
 
-    if (isPie) {
-      // Pie items: toggle only, no drag
-      item.innerHTML = `
-        <input type="checkbox" ${isChecked ? 'checked' : ''} data-key="${key}">
-        <span class="item-label">${meta.label}</span>
-      `;
-      item.querySelector('input').addEventListener('change', (e) => onToggleItem(key, e.target.checked));
-      pieList.appendChild(item);
-    } else {
-      // Text items: drag + toggle
-      item.draggable = true;
-      item.innerHTML = `
-        <span class="drag-handle">\u2261</span>
-        <input type="checkbox" ${isChecked ? 'checked' : ''} data-key="${key}">
-        <span class="item-label">${meta.label}</span>
-      `;
-      item.querySelector('input').addEventListener('change', (e) => onToggleItem(key, e.target.checked));
-      item.addEventListener('dragstart', (e) => { e.dataTransfer.setData('text/plain', key); item.classList.add('dragging'); });
-      item.addEventListener('dragend', () => item.classList.remove('dragging'));
-      item.addEventListener('dragover', (e) => e.preventDefault());
-      item.addEventListener('drop', (e) => { e.preventDefault(); const fk = e.dataTransfer.getData('text/plain'); if (fk !== key) onReorder(fk, key); });
-      textList.appendChild(item);
-    }
+    item.innerHTML = `
+      <div class="move-btns">
+        <button class="move-btn up" ${i === 0 ? 'disabled' : ''} title="Move up">▲</button>
+        <button class="move-btn down" ${i === textKeys.length - 1 ? 'disabled' : ''} title="Move down">▼</button>
+      </div>
+      <input type="checkbox" ${isChecked ? 'checked' : ''} data-key="${key}">
+      <span class="item-label">${meta.label}</span>
+    `;
+
+    item.querySelector('input').addEventListener('change', (e) => onToggleItem(key, e.target.checked));
+    item.querySelector('.move-btn.up').addEventListener('click', () => onMoveItem(key, -1));
+    item.querySelector('.move-btn.down').addEventListener('click', () => onMoveItem(key, 1));
+    textList.appendChild(item);
   }
+
+  // Pie items
+  for (const key of PIE_KEYS) {
+    const meta = allMenubarItems[key];
+    if (!meta) continue;
+    const isChecked = enabled.includes(key);
+    const item = document.createElement('div');
+    item.className = 'settings-item';
+    item.innerHTML = `
+      <input type="checkbox" ${isChecked ? 'checked' : ''} data-key="${key}">
+      <span class="item-label">${meta.label}</span>
+    `;
+    item.querySelector('input').addEventListener('change', (e) => onToggleItem(key, e.target.checked));
+    pieList.appendChild(item);
+  }
+}
+
+async function onMoveItem(key, direction) {
+  const items = [...(currentSettings?.menubar?.items || [])];
+  const textItems = items.filter(k => !PIE_KEYS.includes(k));
+  const pieItems = items.filter(k => PIE_KEYS.includes(k));
+  const idx = textItems.indexOf(key);
+
+  if (idx < 0) return;
+  const newIdx = idx + direction;
+  if (newIdx < 0 || newIdx >= textItems.length) return;
+
+  textItems.splice(idx, 1);
+  textItems.splice(newIdx, 0, key);
+
+  currentSettings = await window.api.updateSettings({ menubar: { ...currentSettings.menubar, items: [...textItems, ...pieItems] } });
+  renderSettingsList();
+  updatePreview();
 }
 
 function renderSeparatorOptions() {

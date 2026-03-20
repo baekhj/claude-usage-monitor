@@ -108,10 +108,11 @@ function createTray() {
   tray.on('click', (event, bounds) => togglePopup(bounds));
   tray.on('right-click', () => tray.popUpContextMenu(buildContextMenu()));
 
-  // 3. App icon tray (leftmost): created last = appears leftmost
-  const iconPath = path.join(app.getAppPath(), 'assets', 'tray-icon.png');
+  // 3. App icon tray (leftmost): Template image for auto dark/light mode
+  const iconPath = path.join(app.getAppPath(), 'assets', 'tray-iconTemplate.png');
   const appIcon = nativeImage.createFromPath(iconPath);
-  appTray = new Tray(appIcon.resize({ width: 16, height: 16 }));
+  appIcon.setTemplateImage(true);
+  appTray = new Tray(appIcon);
   appTray.on('click', (event, bounds) => togglePopup(bounds));
   appTray.on('right-click', () => appTray.popUpContextMenu(buildContextMenu()));
 }

@@ -1,6 +1,6 @@
 {
   "name": "claude-usage-monitor",
-  "version": "1.2.0",
+  "version": "1.3.0",
   "description": "macOS menubar app for monitoring Claude Code token usage",
   "main": "src/main/index.js",
   "scripts": {
@@ -24,7 +24,7 @@
     },
     "files": [
       "src/**/*",
-      "assets/tray-icon.png",
+      "assets/tray-icon*.png",
       "!src/**/*.map"
     ],
     "directories": {

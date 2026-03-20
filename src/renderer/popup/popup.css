@@ -329,7 +329,6 @@ header h1 {
   padding: 8px 10px;
   background: rgba(255,255,255,0.04);
   border-radius: 6px;
-  cursor: grab;
   user-select: none;
   transition: background 0.15s;
 }
@@ -338,20 +337,38 @@ header h1 {
   background: rgba(255,255,255,0.08);
 }
 
-.settings-item.dragging {
-  opacity: 0.5;
-}
-
 .settings-item input[type="checkbox"] {
   accent-color: #6ee7b7;
   width: 14px;
   height: 14px;
 }
 
-.settings-item .drag-handle {
+.move-btns {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.move-btn {
+  background: none;
+  border: none;
   color: #555;
-  font-size: 12px;
-  cursor: grab;
+  font-size: 8px;
+  cursor: pointer;
+  padding: 1px 3px;
+  border-radius: 3px;
+  line-height: 1;
+  transition: color 0.15s, background 0.15s;
+}
+
+.move-btn:hover:not(:disabled) {
+  color: #6ee7b7;
+  background: rgba(110, 231, 183, 0.15);
+}
+
+.move-btn:disabled {
+  opacity: 0.2;
+  cursor: default;
 }
 
 .settings-item .item-label {
