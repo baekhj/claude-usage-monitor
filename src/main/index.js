@@ -8,8 +8,8 @@ const settings = require('./settings');
 const { getUsageFromAPI, getSubscriptionInfo } = require('./usage-api');
 const { startUpdateChecker, checkForUpdates, downloadUpdate, installUpdate, openReleasePage } = require('./updater');
 
-let tray = null;      // text (left in menubar)
-let iconTray = null;  // pie icons (right in menubar, created first)
+let tray = null;      // text tray (left)
+let iconTray = null;  // pie icon tray (right)
 let popupWindow = null;
 let dashboardWindow = null;
 let watcher = null;
@@ -21,30 +21,29 @@ let latestApiUsage = null;
 let firedSessionThresholds = new Set();
 let firedWeeklyThresholds = new Set();
 
-// ── Tray Icon ──
+// ── Tray Icon (pie charts only) ──
 function pctColor(pct) {
   if (pct >= 80) return [248, 113, 113]; // red
   if (pct >= 60) return [251, 191, 36];  // yellow
   return [110, 231, 183];                // green
 }
 
-function drawPie(buf, w, offsetX, radius, pct) {
+function drawPie(buf, totalW, h, offsetX, radius, pct) {
   const [r, g, b] = pctColor(pct);
-  const cx = offsetX + radius, cy = w / 2;
+  const cx = offsetX + radius, cy = h / 2;
   const fillRatio = Math.min(1, Math.max(0, pct / 100));
 
-  for (let y = 0; y < w; y++) {
+  for (let y = 0; y < h; y++) {
     for (let x = offsetX; x < offsetX + radius * 2; x++) {
       const dx = x - cx, dy = y - cy;
       const dist = Math.sqrt(dx * dx + dy * dy);
-      const idx = (y * (buf._totalW || w) + x) * 4;
+      const idx = (y * totalW + x) * 4;
       if (idx < 0 || idx + 3 >= buf.length) continue;
 
       if (dist <= radius && dist >= radius - 2) {
         buf[idx] = 160; buf[idx+1] = 160; buf[idx+2] = 180; buf[idx+3] = 180;
       } else if (dist < radius - 2) {
-        // Angle from top (12 o'clock), clockwise, 0~1 range
-        const angle = Math.atan2(dx, -dy); // top=0, clockwise
+        const angle = Math.atan2(dx, -dy);
         const normalized = (angle < 0 ? angle + Math.PI * 2 : angle) / (Math.PI * 2);
         const filled = pct >= 100 || normalized <= fillRatio;
 
@@ -64,7 +63,7 @@ function createTrayIcon(pct5h, pct7d) {
   const show7d = items.includes('icon7d');
 
   const scale = 2;
-  const pieSize = 14 * scale; // diameter per pie
+  const pieSize = 14 * scale;
   const gap = 3 * scale;
   const count = (show5h ? 1 : 0) + (show7d ? 1 : 0);
 
@@ -73,15 +72,14 @@ function createTrayIcon(pct5h, pct7d) {
   const totalW = count * pieSize + (count > 1 ? gap : 0);
   const h = 18 * scale;
   const buf = Buffer.alloc(totalW * h * 4);
-  buf._totalW = totalW;
 
   let offsetX = 0;
   if (show5h) {
-    drawPie(buf, h, offsetX, pieSize / 2, pct5h ?? 0);
+    drawPie(buf, totalW, h, offsetX, pieSize / 2, pct5h ?? 0);
     offsetX += pieSize + gap;
   }
   if (show7d) {
-    drawPie(buf, h, offsetX, pieSize / 2, pct7d ?? 0);
+    drawPie(buf, totalW, h, offsetX, pieSize / 2, pct7d ?? 0);
   }
 
   return nativeImage.createFromBuffer(buf, { width: totalW, height: h, scaleFactor: scale });
@@ -98,22 +96,16 @@ function buildContextMenu() {
 }
 
 function createTray() {
-  // Icon tray created FIRST = rightmost in menubar
+  // Icon tray (right side): colored pie charts
   iconTray = new Tray(createTrayIcon(0, 0));
   iconTray.on('click', (event, bounds) => togglePopup(bounds));
   iconTray.on('right-click', () => iconTray.popUpContextMenu(buildContextMenu()));
 
-  // Text tray created SECOND = left of icon tray
+  // Text tray (left side): system font for crisp rendering
   tray = new Tray(nativeImage.createEmpty());
-  tray.setTitle('Loading...');
-
-  tray.on('click', (event, bounds) => {
-    togglePopup(bounds);
-  });
-
-  tray.on('right-click', () => {
-    tray.popUpContextMenu(buildContextMenu());
-  });
+  tray.setTitle('Loading...', { fontType: 'monospacedDigit' });
+  tray.on('click', (event, bounds) => togglePopup(bounds));
+  tray.on('right-click', () => tray.popUpContextMenu(buildContextMenu()));
 }
 
 // ── Popup ──
@@ -230,28 +222,39 @@ function showNotification(title, body) {
 }
 
 // ── Menubar ──
+function compactDuration(ms) {
+  if (ms <= 0) return '0m';
+  const h = Math.floor(ms / 3600000);
+  const m = Math.floor((ms % 3600000) / 60000);
+  if (h > 0) return `${h}h${m > 0 ? m + 'm' : ''}`;
+  return `${m}m`;
+}
+
 function buildTrayTitle(stats) {
   const cfg = settings.get();
   const items = cfg.menubar.items;
-  const sep = cfg.menubar.separator;
   const pct = getApiPercent();
+  const sep = ' · ';
 
   const parts = [];
   for (const item of items) {
     switch (item) {
-      case 'usagePct':    parts.push(pct ? `${pct.used}%` : '--%'); break;
-      case 'remainPct':   parts.push(pct ? `${pct.remaining}%` : '--%'); break;
-      case 'weeklyPct':   parts.push(pct ? `7d:${pct.weekly}%` : '7d:--%'); break;
+      case 'icon5h':
+      case 'icon7d':
+        break;
+      case 'usagePct':    parts.push(pct ? `5h ${pct.used}%` : '5h --%'); break;
+      case 'remainPct':   parts.push(pct ? `5h ${pct.remaining}%` : '5h --%'); break;
+      case 'weeklyPct':   parts.push(pct ? `7d ${pct.weekly}%` : '7d --%'); break;
       case 'tokens':      parts.push(formatTokens(stats.block.totalTokens)); break;
       case 'costBlock':   parts.push(formatCost(stats.block.totalCost)); break;
       case 'costToday':   parts.push(formatCost(stats.today.totalCost)); break;
       case 'remaining':
-        if (pct?.sessionReset) parts.push(formatDuration(pct.sessionReset - Date.now()));
-        else parts.push(formatDuration(stats.block.remainingMs));
+        if (pct?.sessionReset) parts.push(compactDuration(pct.sessionReset - Date.now()));
+        else parts.push(compactDuration(stats.block.remainingMs));
         break;
       case 'weeklyReset':
-        if (pct?.weeklyReset) parts.push(`7d:${formatDuration(pct.weeklyReset - Date.now())}`);
-        else parts.push('7d:--');
+        if (pct?.weeklyReset) parts.push(`7d ${compactDuration(pct.weeklyReset - Date.now())}`);
+        else parts.push('7d --');
         break;
       case 'requests':    parts.push(`${stats.block.requestCount}req`); break;
       case 'reqToday':    parts.push(`${stats.today.requestCount}req`); break;
@@ -267,9 +270,8 @@ function buildTrayTitle(stats) {
 
 function updateTrayTitle(stats) {
   if (!tray) return;
-  tray.setTitle(buildTrayTitle(stats));
+  tray.setTitle(buildTrayTitle(stats), { fontType: 'monospacedDigit' });
 
-  // Update pie icon on iconTray (right side)
   const pct = getApiPercent();
   if (iconTray) iconTray.setImage(createTrayIcon(pct?.used, pct?.weekly));
 }
