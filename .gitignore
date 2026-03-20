@@ -3,5 +3,6 @@ dist/
 *.dmg
 .DS_Store
 .claude/
+.bkit/
 docs/.bkit-memory.json
 docs/.pdca-status.json
