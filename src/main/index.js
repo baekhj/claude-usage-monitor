@@ -243,33 +243,38 @@ function buildTrayTitle(stats) {
   const cfg = settings.get();
   const items = cfg.menubar.items;
   const pct = getApiPercent();
-  const sep = ' · ';
+  const sep = cfg.menubar.separator || ' · ';
+  const ITEMS = settings.MENUBAR_ITEMS;
 
-  const parts = [];
+  // Collect values per group, preserving item order
+  const groups = { '5h': [], '7d': [] };
+  const general = [];
+
   for (const item of items) {
+    const meta = ITEMS[item];
+    if (!meta || meta.type === 'icon') continue;
+
+    let value = null;
     switch (item) {
-      case 'icon5h':
-      case 'icon7d':
-        break;
-      case 'usagePct':    parts.push(pct ? `5h ${pct.used}%` : '5h --%'); break;
-      case 'remainPct':   parts.push(pct ? `5h ${pct.remaining}%` : '5h --%'); break;
-      case 'weeklyPct':   parts.push(pct ? `7d ${pct.weekly}%` : '7d --%'); break;
-      case 'tokens':      parts.push(formatTokens(stats.block.totalTokens)); break;
-      case 'costBlock':   parts.push(formatCost(stats.block.totalCost)); break;
-      case 'costToday':   parts.push(formatCost(stats.today.totalCost)); break;
+      case 'usagePct':    value = pct ? `${pct.used}%` : '--%'; break;
+      case 'remainPct':   value = pct ? `${pct.remaining}%` : '--%'; break;
+      case 'weeklyPct':   value = pct ? `${pct.weekly}%` : '--%'; break;
+      case 'tokens':      value = formatTokens(stats.block.totalTokens); break;
+      case 'costBlock':   value = formatCost(stats.block.totalCost); break;
+      case 'costToday':   value = formatCost(stats.today.totalCost); break;
       case 'remaining':
-        if (pct?.sessionReset) parts.push(compactDuration(pct.sessionReset - Date.now()));
-        else parts.push(compactDuration(stats.block.remainingMs));
+        if (pct?.sessionReset) value = compactDuration(pct.sessionReset - Date.now());
+        else value = compactDuration(stats.block.remainingMs);
         break;
       case 'weeklyReset':
-        if (pct?.weeklyReset) parts.push(`7d ${compactDuration(pct.weeklyReset - Date.now())}`);
-        else parts.push('7d --');
+        if (pct?.weeklyReset) value = compactDuration(pct.weeklyReset - Date.now());
+        else value = '--';
         break;
-      case 'requests':    parts.push(`${stats.block.requestCount}req`); break;
-      case 'reqToday':    parts.push(`${stats.today.requestCount}req`); break;
+      case 'requests':    value = `${stats.block.requestCount}req`; break;
+      case 'reqToday':    value = `${stats.today.requestCount}req`; break;
       case 'model': {
         const m = stats.block.lastModel;
-        if (m) { const s = m.replace(/^claude-/, '').replace(/-\d.*$/, ''); parts.push(s.charAt(0).toUpperCase() + s.slice(1)); }
+        if (m) { const s = m.replace(/^claude-/, '').replace(/-\d.*$/, ''); value = s.charAt(0).toUpperCase() + s.slice(1); }
         break;
       }
       case 'plan': {
@@ -278,13 +283,25 @@ function buildTrayTitle(stats) {
           const type = (sub.subscriptionType || '').charAt(0).toUpperCase() + (sub.subscriptionType || '').slice(1);
           const tier = (sub.rateLimitTier || '');
           const label = tier.includes('5x') ? 'Max 5x' : tier.includes('20x') ? 'Max 20x' : '';
-          parts.push(label ? `${type} ${label}` : type);
+          value = label ? `${type} ${label}` : type;
         }
         break;
       }
     }
+
+    if (value) {
+      const group = meta.group;
+      if (group && groups[group]) groups[group].push(value);
+      else general.push(value);
+    }
   }
-  return parts.length > 0 ? parts.join(sep) : '--';
+
+  // Build sections: general items first, then 5H group, 7D group
+  const sections = [...general];
+  if (groups['5h'].length > 0) sections.push('5H ' + groups['5h'].join(' '));
+  if (groups['7d'].length > 0) sections.push('7D ' + groups['7d'].join(' '));
+
+  return sections.length > 0 ? sections.join(sep) : '--';
 }
 
 function updateTrayTitle(stats) {

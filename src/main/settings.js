@@ -19,20 +19,20 @@ const DEFAULTS = {
 };
 
 const MENUBAR_ITEMS = {
-  icon5h:      { label: '5h Pie Icon',        key: 'icon5h',      type: 'icon' },
-  icon7d:      { label: '7d Pie Icon',        key: 'icon7d',      type: 'icon' },
-  usagePct:    { label: '5h Usage %',         key: 'usagePct',    type: 'text' },
-  remainPct:   { label: '5h Remaining %',     key: 'remainPct',   type: 'text' },
-  weeklyPct:   { label: '7d Usage %',         key: 'weeklyPct',   type: 'text' },
-  tokens:      { label: 'Block Tokens',       key: 'tokens',      type: 'text' },
-  costBlock:   { label: 'Block Cost',         key: 'costBlock',   type: 'text' },
-  costToday:   { label: 'Today Cost',         key: 'costToday',   type: 'text' },
-  remaining:   { label: '5h Reset In',        key: 'remaining',   type: 'text' },
-  weeklyReset: { label: '7d Reset In',        key: 'weeklyReset', type: 'text' },
-  requests:    { label: 'Block Requests',     key: 'requests',    type: 'text' },
-  reqToday:    { label: 'Today Requests',     key: 'reqToday',    type: 'text' },
-  model:       { label: 'Active Model',       key: 'model',       type: 'text' },
-  plan:        { label: 'Plan',              key: 'plan',        type: 'text' },
+  icon5h:      { label: 'Pie Icon',           key: 'icon5h',      type: 'icon', group: '5h' },
+  icon7d:      { label: 'Pie Icon',           key: 'icon7d',      type: 'icon', group: '7d' },
+  usagePct:    { label: 'Usage %',            key: 'usagePct',    type: 'text', group: '5h' },
+  remainPct:   { label: 'Remaining %',        key: 'remainPct',   type: 'text', group: '5h' },
+  weeklyPct:   { label: 'Usage %',            key: 'weeklyPct',   type: 'text', group: '7d' },
+  tokens:      { label: 'Block Tokens',       key: 'tokens',      type: 'text', group: null },
+  costBlock:   { label: 'Block Cost',         key: 'costBlock',   type: 'text', group: null },
+  costToday:   { label: 'Today Cost',         key: 'costToday',   type: 'text', group: null },
+  remaining:   { label: 'Reset In',           key: 'remaining',   type: 'text', group: '5h' },
+  weeklyReset: { label: 'Reset In',           key: 'weeklyReset', type: 'text', group: '7d' },
+  requests:    { label: 'Block Requests',     key: 'requests',    type: 'text', group: null },
+  reqToday:    { label: 'Today Requests',     key: 'reqToday',    type: 'text', group: null },
+  model:       { label: 'Active Model',       key: 'model',       type: 'text', group: null },
+  plan:        { label: 'Plan',              key: 'plan',        type: 'text', group: null },
 };
 
 let cached = null;

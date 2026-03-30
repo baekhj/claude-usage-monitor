@@ -192,72 +192,86 @@ function hideSettings() {
   document.getElementById('main-view').classList.remove('hidden');
 }
 
-const PIE_KEYS = ['icon5h', 'icon7d'];
+const GROUP_ORDER = ['general', '5h', '7d'];
 
 function renderSettingsList() {
-  const textList = document.getElementById('menubar-items-list');
-  const pieList = document.getElementById('pie-items-list');
-  textList.innerHTML = '';
-  pieList.innerHTML = '';
-
   const enabled = currentSettings?.menubar?.items || [];
   const allKeys = Object.keys(allMenubarItems);
-  const textKeys = [...enabled.filter(k => !PIE_KEYS.includes(k)), ...allKeys.filter(k => !PIE_KEYS.includes(k) && !enabled.includes(k))];
 
-  for (let i = 0; i < textKeys.length; i++) {
-    const key = textKeys[i];
-    const meta = allMenubarItems[key];
-    if (!meta) continue;
-    const isChecked = enabled.includes(key);
-    const item = document.createElement('div');
-    item.className = 'settings-item';
-    item.dataset.key = key;
+  for (const g of GROUP_ORDER) {
+    const listEl = document.getElementById(`menubar-${g}-list`);
+    listEl.innerHTML = '';
 
-    item.innerHTML = `
-      <div class="move-btns">
-        <button class="move-btn up" ${i === 0 ? 'disabled' : ''} title="Move up">▲</button>
-        <button class="move-btn down" ${i === textKeys.length - 1 ? 'disabled' : ''} title="Move down">▼</button>
-      </div>
-      <input type="checkbox" ${isChecked ? 'checked' : ''} data-key="${key}">
-      <span class="item-label">${meta.label}</span>
-    `;
+    // Get keys belonging to this group
+    const groupKeys = allKeys.filter(k => (allMenubarItems[k].group || 'general') === g);
 
-    item.querySelector('input').addEventListener('change', (e) => onToggleItem(key, e.target.checked));
-    item.querySelector('.move-btn.up').addEventListener('click', () => onMoveItem(key, -1));
-    item.querySelector('.move-btn.down').addEventListener('click', () => onMoveItem(key, 1));
-    textList.appendChild(item);
-  }
+    // Sort: enabled first (in configured order), then disabled
+    const enabledInGroup = enabled.filter(k => groupKeys.includes(k));
+    const disabledInGroup = groupKeys.filter(k => !enabled.includes(k));
+    const sorted = [...enabledInGroup, ...disabledInGroup];
+    const textKeys = sorted.filter(k => allMenubarItems[k].type !== 'icon');
 
-  // Pie items
-  for (const key of PIE_KEYS) {
-    const meta = allMenubarItems[key];
-    if (!meta) continue;
-    const isChecked = enabled.includes(key);
-    const item = document.createElement('div');
-    item.className = 'settings-item';
-    item.innerHTML = `
-      <input type="checkbox" ${isChecked ? 'checked' : ''} data-key="${key}">
-      <span class="item-label">${meta.label}</span>
-    `;
-    item.querySelector('input').addEventListener('change', (e) => onToggleItem(key, e.target.checked));
-    pieList.appendChild(item);
+    for (const key of sorted) {
+      const meta = allMenubarItems[key];
+      if (!meta) continue;
+      const isChecked = enabled.includes(key);
+      const isIcon = meta.type === 'icon';
+      const textIdx = textKeys.indexOf(key);
+
+      const item = document.createElement('div');
+      item.className = 'settings-item';
+      item.dataset.key = key;
+
+      let moveHtml = '';
+      if (!isIcon && textKeys.length > 1) {
+        moveHtml = `
+          <div class="move-btns">
+            <button class="move-btn up" ${textIdx === 0 ? 'disabled' : ''} title="Move up">▲</button>
+            <button class="move-btn down" ${textIdx === textKeys.length - 1 ? 'disabled' : ''} title="Move down">▼</button>
+          </div>
+        `;
+      }
+
+      item.innerHTML = `
+        ${moveHtml}
+        <input type="checkbox" ${isChecked ? 'checked' : ''} data-key="${key}">
+        <span class="item-label">${isIcon ? '🟢 ' : ''}${meta.label}</span>
+      `;
+
+      item.querySelector('input').addEventListener('change', (e) => onToggleItem(key, e.target.checked));
+      if (!isIcon) {
+        item.querySelector('.move-btn.up')?.addEventListener('click', () => onMoveItem(key, -1));
+        item.querySelector('.move-btn.down')?.addEventListener('click', () => onMoveItem(key, 1));
+      }
+      listEl.appendChild(item);
+    }
   }
 }
 
 async function onMoveItem(key, direction) {
   const items = [...(currentSettings?.menubar?.items || [])];
-  const textItems = items.filter(k => !PIE_KEYS.includes(k));
-  const pieItems = items.filter(k => PIE_KEYS.includes(k));
-  const idx = textItems.indexOf(key);
+  const meta = allMenubarItems[key];
+  if (!meta) return;
+  const group = meta.group || 'general';
 
+  // Get text items in the same group
+  const sameGroupText = items.filter(k => {
+    const m = allMenubarItems[k];
+    return m && m.type !== 'icon' && (m.group || 'general') === group;
+  });
+
+  const idx = sameGroupText.indexOf(key);
   if (idx < 0) return;
   const newIdx = idx + direction;
-  if (newIdx < 0 || newIdx >= textItems.length) return;
+  if (newIdx < 0 || newIdx >= sameGroupText.length) return;
 
-  textItems.splice(idx, 1);
-  textItems.splice(newIdx, 0, key);
+  // Swap in the full items array
+  const actualIdx = items.indexOf(key);
+  const swapKey = sameGroupText[newIdx];
+  const actualSwapIdx = items.indexOf(swapKey);
+  [items[actualIdx], items[actualSwapIdx]] = [items[actualSwapIdx], items[actualIdx]];
 
-  currentSettings = await window.api.updateSettings({ menubar: { ...currentSettings.menubar, items: [...textItems, ...pieItems] } });
+  currentSettings = await window.api.updateSettings({ menubar: { ...currentSettings.menubar, items } });
   renderSettingsList();
   updatePreview();
 }
@@ -303,24 +317,42 @@ function updatePreview() {
   const sep = currentSettings.menubar.separator;
   const pct = currentPercent;
   const stats = currentStats;
-  const parts = [];
+
+  const groups = { '5h': [], '7d': [] };
+  const general = [];
 
   for (const item of items) {
+    const meta = allMenubarItems[item];
+    if (!meta || meta.type === 'icon') continue;
+
+    let value = null;
     switch (item) {
-      case 'usagePct': parts.push(pct ? `${pct.used}%` : '--%'); break;
-      case 'remainPct': parts.push(pct ? `${pct.remaining}%` : '--%'); break;
-      case 'weeklyPct': parts.push(pct ? `7d:${pct.weekly}%` : '7d:--%'); break;
-      case 'tokens': parts.push(formatTokens(stats.block.totalTokens)); break;
-      case 'costBlock': parts.push(formatCost(stats.block.totalCost)); break;
-      case 'costToday': parts.push(formatCost(stats.today.totalCost)); break;
-      case 'remaining': parts.push(pct?.sessionReset ? formatDuration(pct.sessionReset - Date.now()) : formatDuration(stats.block.remainingMs)); break;
-      case 'weeklyReset': parts.push(pct?.weeklyReset ? `7d:${formatDuration(pct.weeklyReset - Date.now())}` : '7d:--'); break;
-      case 'requests': parts.push(`${stats.block.requestCount}req`); break;
-      case 'reqToday': parts.push(`${stats.today.requestCount}req`); break;
-      case 'model': { const m = stats.block.lastModel; if (m) parts.push(shortModelName(m)); break; }
+      case 'usagePct': value = pct ? `${pct.used}%` : '--%'; break;
+      case 'remainPct': value = pct ? `${pct.remaining}%` : '--%'; break;
+      case 'weeklyPct': value = pct ? `${pct.weekly}%` : '--%'; break;
+      case 'tokens': value = formatTokens(stats.block.totalTokens); break;
+      case 'costBlock': value = formatCost(stats.block.totalCost); break;
+      case 'costToday': value = formatCost(stats.today.totalCost); break;
+      case 'remaining': value = pct?.sessionReset ? formatDuration(pct.sessionReset - Date.now()) : formatDuration(stats.block.remainingMs); break;
+      case 'weeklyReset': value = pct?.weeklyReset ? formatDuration(pct.weeklyReset - Date.now()) : '--'; break;
+      case 'requests': value = `${stats.block.requestCount}req`; break;
+      case 'reqToday': value = `${stats.today.requestCount}req`; break;
+      case 'model': { const m = stats.block.lastModel; if (m) value = shortModelName(m); break; }
+      case 'plan': { /* plan not shown in preview */ break; }
+    }
+
+    if (value) {
+      const group = meta.group;
+      if (group && groups[group]) groups[group].push(value);
+      else general.push(value);
     }
   }
-  el.textContent = parts.length > 0 ? parts.join(sep) : '(empty)';
+
+  const sections = [...general];
+  if (groups['5h'].length > 0) sections.push('5H ' + groups['5h'].join(' '));
+  if (groups['7d'].length > 0) sections.push('7D ' + groups['7d'].join(' '));
+
+  el.textContent = sections.length > 0 ? sections.join(sep) : '(empty)';
 }
 
 // ── Event Listeners ──
