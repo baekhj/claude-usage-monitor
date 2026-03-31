@@ -145,27 +145,11 @@ function createPillWindow() {
   pillWindow.webContents.on('did-finish-load', () => { pillWindowReady = true; });
 }
 
-// ── Popup ──
-function createPopupWindow(bounds) {
-  if (popupWindow) { popupWindow.close(); popupWindow = null; return; }
+// ── Popup (pre-created, show/hide for instant response) ──
+const popupW = 380, popupH = 640;
 
-  const popupW = 380, popupH = 640;
-  let x = Math.round(bounds.x - popupW / 2);
-  let y;
-  if (isMac) {
-    y = bounds.y + bounds.height;
-  } else {
-    // Windows: popup above tray, clamp to screen
-    y = bounds.y - popupH;
-    const display = screen.getDisplayNearestPoint({ x: bounds.x, y: bounds.y });
-    const workArea = display.workArea;
-    if (x + popupW > workArea.x + workArea.width) x = workArea.x + workArea.width - popupW;
-    if (x < workArea.x) x = workArea.x;
-    if (y < workArea.y) y = workArea.y;
-  }
-
+function createPopupWindow() {
   popupWindow = new BrowserWindow({
-    x, y,
     width: popupW,
     height: popupH,
     frame: false,
@@ -182,14 +166,45 @@ function createPopupWindow(bounds) {
   });
 
   popupWindow.loadFile(path.join(__dirname, '..', 'renderer', 'popup', 'popup.html'));
-  popupWindow.once('ready-to-show', () => { popupWindow.show(); sendStatsToPopup(); });
-  popupWindow.on('blur', () => { if (popupWindow && !popupWindow.isDestroyed()) popupWindow.close(); });
+  popupWindow.on('blur', () => { if (popupWindow && !popupWindow.isDestroyed()) popupWindow.hide(); });
   popupWindow.on('closed', () => { popupWindow = null; });
 }
 
+function positionPopup(bounds) {
+  if (!popupWindow) return;
+  let x = Math.round(bounds.x - popupW / 2);
+  let y;
+  if (isMac) {
+    y = bounds.y + bounds.height;
+  } else {
+    y = bounds.y - popupH;
+    const display = screen.getDisplayNearestPoint({ x: bounds.x, y: bounds.y });
+    const workArea = display.workArea;
+    if (x + popupW > workArea.x + workArea.width) x = workArea.x + workArea.width - popupW;
+    if (x < workArea.x) x = workArea.x;
+    if (y < workArea.y) y = workArea.y;
+  }
+  popupWindow.setPosition(x, y);
+}
+
 function togglePopup(bounds) {
-  if (popupWindow) { popupWindow.close(); popupWindow = null; }
-  else createPopupWindow(bounds);
+  if (!popupWindow || popupWindow.isDestroyed()) {
+    createPopupWindow();
+    popupWindow.once('ready-to-show', () => {
+      positionPopup(bounds);
+      popupWindow.show();
+      sendStatsToPopup();
+    });
+    return;
+  }
+  if (popupWindow.isVisible()) {
+    popupWindow.hide();
+  } else {
+    positionPopup(bounds);
+    popupWindow.show();
+    popupWindow.webContents.executeJavaScript('resetToMain()').catch(() => {});
+    sendStatsToPopup();
+  }
 }
 
 // ── Dashboard ──
@@ -545,6 +560,7 @@ app.whenReady().then(() => {
 
   createTray();
   createPillWindow();
+  createPopupWindow();
   updateStats();
 
   refreshApiUsage();

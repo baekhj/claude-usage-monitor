@@ -193,6 +193,14 @@ function hideSettings() {
   document.getElementById('main-view').classList.remove('hidden');
 }
 
+// Called from main process when popup is shown
+function resetToMain() {
+  document.getElementById('settings-view').classList.add('hidden');
+  document.getElementById('main-view').classList.remove('hidden');
+  document.activeElement?.blur();
+  document.querySelector('.container').scrollTop = 0;
+}
+
 const GROUP_ORDER = ['general', '5h', '7d'];
 
 function renderSettingsList() {
