@@ -9,7 +9,9 @@
     "build": "electron-builder --mac",
     "build:dir": "electron-builder --mac --dir",
     "build:arm64": "electron-builder --mac --arm64",
-    "build:universal": "electron-builder --mac --universal"
+    "build:universal": "electron-builder --mac --universal",
+    "build:win": "electron-builder --win",
+    "build:all": "electron-builder --mac --arm64 --win"
   },
   "build": {
     "appId": "com.claude-usage-monitor",
@@ -21,6 +23,17 @@
         { "target": "zip", "arch": ["arm64", "x64"] }
       ],
       "icon": "assets/icon.icns"
+    },
+    "win": {
+      "target": [
+        { "target": "nsis", "arch": ["x64"] },
+        { "target": "portable", "arch": ["x64"] }
+      ],
+      "icon": "assets/icon.ico"
+    },
+    "nsis": {
+      "oneClick": true,
+      "perMachine": false
     },
     "files": [
       "src/**/*",

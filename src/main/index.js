@@ -1,5 +1,6 @@
-const { app, BrowserWindow, Tray, Menu, nativeImage, ipcMain, Notification, nativeTheme } = require('electron');
+const { app, BrowserWindow, Tray, Menu, nativeImage, ipcMain, Notification, nativeTheme, screen } = require('electron');
 const path = require('path');
+const isMac = process.platform === 'darwin';
 const { getStats } = require('./parser');
 const { JsonlWatcher } = require('./watcher');
 const { formatDuration, formatTokens, formatCost } = require('../shared/utils');
@@ -69,7 +70,14 @@ function createTrayIcon(pct5h, pct7d) {
   const gap = 3 * scale;
   const count = (show5h ? 1 : 0) + (show7d ? 1 : 0);
 
-  if (count === 0) return nativeImage.createEmpty();
+  if (count === 0) {
+    if (!isMac) {
+      // Windows/Linux: always need an icon, show default app icon
+      const iconPath = path.join(app.getAppPath(), 'assets', 'tray-icon.png');
+      return nativeImage.createFromPath(iconPath);
+    }
+    return nativeImage.createEmpty();
+  }
 
   const totalW = count * pieSize + (count > 1 ? gap : 0);
   const h = 18 * scale;
@@ -98,21 +106,28 @@ function buildContextMenu() {
 }
 
 function createTray() {
-  // 1. Icon tray (rightmost): colored pie charts
-  iconTray = new Tray(createTrayIcon(0, 0));
-  iconTray.on('click', (event, bounds) => togglePopup(bounds));
-  iconTray.on('right-click', () => iconTray.popUpContextMenu(buildContextMenu()));
+  if (isMac) {
+    // macOS: pie icon tray (right) + text tray (left)
+    iconTray = new Tray(createTrayIcon(0, 0));
+    iconTray.on('click', (event, bounds) => togglePopup(bounds));
+    iconTray.on('right-click', () => iconTray.popUpContextMenu(buildContextMenu()));
 
-  // 2. Text tray (middle): system font for crisp rendering
-  tray = new Tray(nativeImage.createEmpty());
-  tray.setTitle('Loading...', { fontType: 'monospacedDigit' });
-  tray.on('click', (event, bounds) => togglePopup(bounds));
-  tray.on('right-click', () => tray.popUpContextMenu(buildContextMenu()));
-
+    tray = new Tray(nativeImage.createEmpty());
+    tray.setTitle('Loading...', { fontType: 'monospacedDigit' });
+    tray.on('click', (event, bounds) => togglePopup(bounds));
+    tray.on('right-click', () => tray.popUpContextMenu(buildContextMenu()));
+  } else {
+    // Windows/Linux: single tray icon + tooltip
+    tray = new Tray(createTrayIcon(0, 0));
+    tray.setToolTip('Claude Usage Monitor');
+    tray.on('click', (event, bounds) => togglePopup(bounds));
+    tray.on('right-click', () => tray.popUpContextMenu(buildContextMenu()));
+  }
 }
 
-// ── Pill Window (offscreen renderer for pill-style menubar) ──
+// ── Pill Window (offscreen renderer for pill-style menubar, macOS only) ──
 function createPillWindow() {
+  if (!isMac) return;
   pillWindow = new BrowserWindow({
     show: false,
     width: 800,
@@ -134,11 +149,25 @@ function createPillWindow() {
 function createPopupWindow(bounds) {
   if (popupWindow) { popupWindow.close(); popupWindow = null; return; }
 
+  const popupW = 380, popupH = 640;
+  let x = Math.round(bounds.x - popupW / 2);
+  let y;
+  if (isMac) {
+    y = bounds.y + bounds.height;
+  } else {
+    // Windows: popup above tray, clamp to screen
+    y = bounds.y - popupH;
+    const display = screen.getDisplayNearestPoint({ x: bounds.x, y: bounds.y });
+    const workArea = display.workArea;
+    if (x + popupW > workArea.x + workArea.width) x = workArea.x + workArea.width - popupW;
+    if (x < workArea.x) x = workArea.x;
+    if (y < workArea.y) y = workArea.y;
+  }
+
   popupWindow = new BrowserWindow({
-    x: Math.round(bounds.x - 190),
-    y: bounds.y + bounds.height,
-    width: 380,
-    height: 640,
+    x, y,
+    width: popupW,
+    height: popupH,
     frame: false,
     resizable: false,
     movable: false,
@@ -375,19 +404,25 @@ async function updateTrayTitle(stats) {
   const segments = buildTraySegments(stats);
   const pct = getApiPercent();
 
-  const anyPill = segments.some(s => s.pill);
-  if (anyPill) {
-    const ok = await updateTrayPill(segments);
-    if (ok) {
-      if (iconTray) iconTray.setImage(createTrayIcon(pct?.used, pct?.weekly));
-      return;
+  if (isMac) {
+    // macOS: pill rendering or text title
+    const anyPill = segments.some(s => s.pill);
+    if (anyPill) {
+      const ok = await updateTrayPill(segments);
+      if (ok) {
+        if (iconTray) iconTray.setImage(createTrayIcon(pct?.used, pct?.weekly));
+        return;
+      }
     }
+    // Text mode
+    tray.setImage(nativeImage.createEmpty());
+    tray.setTitle(buildTrayTitle(stats), { fontType: 'monospacedDigit' });
+    if (iconTray) iconTray.setImage(createTrayIcon(pct?.used, pct?.weekly));
+  } else {
+    // Windows/Linux: icon + tooltip
+    tray.setImage(createTrayIcon(pct?.used, pct?.weekly));
+    tray.setToolTip('Claude Usage Monitor\n' + buildTrayTitle(stats));
   }
-
-  // Text mode (default)
-  tray.setImage(nativeImage.createEmpty());
-  tray.setTitle(buildTrayTitle(stats), { fontType: 'monospacedDigit' });
-  if (iconTray) iconTray.setImage(createTrayIcon(pct?.used, pct?.weekly));
 }
 
 // ── Data flow ──
