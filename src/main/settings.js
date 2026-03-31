@@ -8,6 +8,7 @@ const DEFAULTS = {
   menubar: {
     items: ['icon5h', 'icon7d', 'usagePct', 'remaining', 'costToday'],
     separator: ' · ',
+    pillColors: { plan: 'none', '5h': 'none', '7d': 'none' },
   },
   apiRefreshSeconds: 300,
   notifications: {
@@ -16,6 +17,16 @@ const DEFAULTS = {
     weeklyThresholds: [75, 90],
   },
   launchAtLogin: false,
+};
+
+const PILL_COLORS = {
+  none:    { dark: null, light: null, swatch: 'transparent' },
+  default: { dark: 'rgba(255,255,255,0.14)', light: 'rgba(0,0,0,0.08)',  swatch: '#888' },
+  green:   { dark: 'rgba(110,231,183,0.30)', light: 'rgba(16,185,129,0.20)', swatch: '#6ee7b7' },
+  blue:    { dark: 'rgba(96,165,250,0.30)',  light: 'rgba(59,130,246,0.20)', swatch: '#60a5fa' },
+  purple:  { dark: 'rgba(192,132,252,0.30)', light: 'rgba(139,92,246,0.20)', swatch: '#c084fc' },
+  amber:   { dark: 'rgba(251,191,36,0.30)',  light: 'rgba(217,119,6,0.20)',  swatch: '#fbbf24' },
+  red:     { dark: 'rgba(248,113,113,0.30)', light: 'rgba(239,68,68,0.20)',  swatch: '#f87171' },
 };
 
 const MENUBAR_ITEMS = {
@@ -73,4 +84,4 @@ function update(partial) {
   return merged;
 }
 
-module.exports = { get, update, MENUBAR_ITEMS, DEFAULTS };
+module.exports = { get, update, MENUBAR_ITEMS, DEFAULTS, PILL_COLORS };

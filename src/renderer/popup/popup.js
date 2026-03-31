@@ -48,6 +48,7 @@ let currentStats = null;
 let currentSettings = null;
 let currentPercent = null;
 let allMenubarItems = {};
+let allPillColors = {};
 
 // ── Plan Badge ──
 function formatPlan(sub) {
@@ -412,11 +413,36 @@ document.getElementById('notif-weekly').addEventListener('input', (e) => {
 // General settings
 function renderGeneralSettings() {
   document.getElementById('launch-login').checked = currentSettings?.launchAtLogin || false;
+  renderPillColors();
+}
+
+function renderPillColors() {
+  const pillColors = currentSettings?.menubar?.pillColors || {};
+  document.querySelectorAll('.pill-color-row').forEach(row => {
+    const group = row.dataset.group;
+    const container = row.querySelector('.pill-color-swatches');
+    container.innerHTML = '';
+    const current = pillColors[group] || 'default';
+
+    for (const [key, val] of Object.entries(allPillColors)) {
+      const swatch = document.createElement('div');
+      swatch.className = 'color-swatch' + (key === current ? ' active' : '') + (key === 'none' ? ' none' : '');
+      if (key !== 'none') swatch.style.background = val.swatch;
+      swatch.title = key === 'none' ? 'Off' : key;
+      swatch.addEventListener('click', async () => {
+        const colors = { ...(currentSettings.menubar.pillColors || {}), [group]: key };
+        currentSettings = await window.api.updateSettings({ menubar: { ...currentSettings.menubar, pillColors: colors } });
+        renderPillColors();
+      });
+      container.appendChild(swatch);
+    }
+  });
 }
 
 document.getElementById('launch-login').addEventListener('change', async (e) => {
   currentSettings = await window.api.updateSettings({ launchAtLogin: e.target.checked });
 });
+
 
 document.getElementById('settings-btn').addEventListener('click', showSettings);
 document.getElementById('settings-back').addEventListener('click', hideSettings);
@@ -577,6 +603,7 @@ window.api.onUpdateState((state) => {
 // ── Init ──
 (async () => {
   allMenubarItems = await window.api.getMenubarItems();
+  allPillColors = await window.api.getPillColors();
   const data = await window.api.getStats();
   updateUI(data);
 

@@ -1,4 +1,4 @@
-const { app, BrowserWindow, Tray, Menu, nativeImage, ipcMain, Notification } = require('electron');
+const { app, BrowserWindow, Tray, Menu, nativeImage, ipcMain, Notification, nativeTheme } = require('electron');
 const path = require('path');
 const { getStats } = require('./parser');
 const { JsonlWatcher } = require('./watcher');
@@ -8,11 +8,12 @@ const settings = require('./settings');
 const { getUsageFromAPI, getSubscriptionInfo } = require('./usage-api');
 const { startUpdateChecker, checkForUpdates, downloadUpdate, installUpdate, openReleasePage } = require('./updater');
 
-let appTray = null;   // app icon tray (leftmost)
 let tray = null;      // text tray (middle)
 let iconTray = null;  // pie icon tray (right)
 let popupWindow = null;
 let dashboardWindow = null;
+let pillWindow = null;
+let pillWindowReady = false;
 let watcher = null;
 let refreshTimer = null;
 let usageTimer = null;
@@ -108,13 +109,25 @@ function createTray() {
   tray.on('click', (event, bounds) => togglePopup(bounds));
   tray.on('right-click', () => tray.popUpContextMenu(buildContextMenu()));
 
-  // 3. App icon tray (leftmost): Template image for auto dark/light mode
-  const iconPath = path.join(app.getAppPath(), 'assets', 'tray-iconTemplate.png');
-  const appIcon = nativeImage.createFromPath(iconPath);
-  appIcon.setTemplateImage(true);
-  appTray = new Tray(appIcon);
-  appTray.on('click', (event, bounds) => togglePopup(bounds));
-  appTray.on('right-click', () => appTray.popUpContextMenu(buildContextMenu()));
+}
+
+// ── Pill Window (offscreen renderer for pill-style menubar) ──
+function createPillWindow() {
+  pillWindow = new BrowserWindow({
+    show: false,
+    width: 800,
+    height: 44,
+    frame: false,
+    transparent: true,
+    hasShadow: false,
+    webPreferences: {
+      offscreen: true,
+      contextIsolation: false,
+    }
+  });
+  pillWindow.webContents.setFrameRate(1);
+  pillWindow.loadFile(path.join(__dirname, '..', 'renderer', 'pill', 'pill.html'));
+  pillWindow.webContents.on('did-finish-load', () => { pillWindowReady = true; });
 }
 
 // ── Popup ──
@@ -239,16 +252,16 @@ function compactDuration(ms) {
   return `${m}m`;
 }
 
-function buildTrayTitle(stats) {
+function buildTraySegments(stats) {
   const cfg = settings.get();
   const items = cfg.menubar.items;
   const pct = getApiPercent();
-  const sep = cfg.menubar.separator || ' · ';
   const ITEMS = settings.MENUBAR_ITEMS;
+  const pillColors = cfg.menubar.pillColors || {};
 
-  // Collect values per group, preserving item order
   const groups = { '5h': [], '7d': [] };
   const general = [];
+  let planValue = null;
 
   for (const item of items) {
     const meta = ITEMS[item];
@@ -290,25 +303,90 @@ function buildTrayTitle(stats) {
     }
 
     if (value) {
-      const group = meta.group;
-      if (group && groups[group]) groups[group].push(value);
-      else general.push(value);
+      if (item === 'plan') planValue = value;
+      else {
+        const group = meta.group;
+        if (group && groups[group]) groups[group].push(value);
+        else general.push(value);
+      }
     }
   }
 
-  // Build sections: general items first, then 5H group, 7D group
-  const sections = [...general];
-  if (groups['5h'].length > 0) sections.push('5H ' + groups['5h'].join(' '));
-  if (groups['7d'].length > 0) sections.push('7D ' + groups['7d'].join(' '));
-
-  return sections.length > 0 ? sections.join(sep) : '--';
+  const hasPill = (g) => pillColors[g] && pillColors[g] !== 'none';
+  const segments = [];
+  if (planValue) segments.push({ text: planValue, pill: hasPill('plan'), group: 'plan' });
+  for (const item of general) segments.push({ text: item, pill: false, group: 'general' });
+  if (groups['5h'].length > 0) segments.push({ text: '5H ' + groups['5h'].join(' '), pill: hasPill('5h'), group: '5h' });
+  if (groups['7d'].length > 0) segments.push({ text: '7D ' + groups['7d'].join(' '), pill: hasPill('7d'), group: '7d' });
+  return segments;
 }
 
-function updateTrayTitle(stats) {
-  if (!tray) return;
-  tray.setTitle(buildTrayTitle(stats), { fontType: 'monospacedDigit' });
+function buildTrayTitle(stats) {
+  const cfg = settings.get();
+  const sep = cfg.menubar.separator || ' · ';
+  const segments = buildTraySegments(stats);
+  return segments.length > 0 ? segments.map(s => s.text).join(sep) : '--';
+}
 
+// ── Pill-style tray rendering ──
+async function updateTrayPill(segments) {
+  if (!pillWindow || pillWindow.isDestroyed() || !pillWindowReady) return false;
+
+  const cfg = settings.get();
+  const sep = (cfg.menubar.separator || ' · ').trim() || '·';
+  const isDark = nativeTheme.shouldUseDarkColors;
+  const mode = isDark ? 'dark' : 'light';
+  const pillColors = cfg.menubar.pillColors || {};
+  const COLORS = settings.PILL_COLORS;
+
+  // Resolve per-segment colors
+  const colored = segments.map(s => {
+    if (s.pill && s.group) {
+      const key = pillColors[s.group] || 'default';
+      return { ...s, color: COLORS[key]?.[mode] || COLORS.default[mode] };
+    }
+    return s;
+  });
+
+  try {
+    await pillWindow.webContents.executeJavaScript(`setTheme(${isDark})`);
+    const width = await pillWindow.webContents.executeJavaScript(
+      `render(${JSON.stringify(colored)}, ${JSON.stringify(sep)})`
+    );
+
+    if (width <= 0) return false;
+
+    const image = await pillWindow.webContents.capturePage({
+      x: 0, y: 0, width: Math.ceil(width) + 2, height: 22
+    });
+
+    tray.setTitle('');
+    tray.setImage(image);
+    return true;
+  } catch (e) {
+    return false;
+  }
+}
+
+async function updateTrayTitle(stats) {
+  if (!tray) return;
+
+  const cfg = settings.get();
+  const segments = buildTraySegments(stats);
   const pct = getApiPercent();
+
+  const anyPill = segments.some(s => s.pill);
+  if (anyPill) {
+    const ok = await updateTrayPill(segments);
+    if (ok) {
+      if (iconTray) iconTray.setImage(createTrayIcon(pct?.used, pct?.weekly));
+      return;
+    }
+  }
+
+  // Text mode (default)
+  tray.setImage(nativeImage.createEmpty());
+  tray.setTitle(buildTrayTitle(stats), { fontType: 'monospacedDigit' });
   if (iconTray) iconTray.setImage(createTrayIcon(pct?.used, pct?.weekly));
 }
 
@@ -382,6 +460,7 @@ ipcMain.handle('update-settings', (event, partial) => {
 });
 
 ipcMain.handle('get-menubar-items', () => settings.MENUBAR_ITEMS);
+ipcMain.handle('get-pill-colors', () => settings.PILL_COLORS);
 ipcMain.handle('get-subscription-info', () => getSubscriptionInfo());
 ipcMain.handle('refresh-api-usage', async () => { await refreshApiUsage(); return latestApiUsage; });
 ipcMain.handle('open-dashboard', () => openDashboard());
@@ -430,11 +509,14 @@ app.whenReady().then(() => {
   applyLaunchAtLogin(cfg.launchAtLogin);
 
   createTray();
+  createPillWindow();
   updateStats();
 
   refreshApiUsage();
   restartUsageTimer();
   startUpdateChecker();
+
+  nativeTheme.on('updated', () => updateStats());
 
   watcher = new JsonlWatcher(() => updateStats());
   watcher.start();
@@ -445,6 +527,7 @@ app.whenReady().then(() => {
 app.on('window-all-closed', (e) => e.preventDefault());
 
 app.on('before-quit', () => {
+  if (pillWindow && !pillWindow.isDestroyed()) pillWindow.close();
   if (watcher) watcher.stop();
   if (refreshTimer) clearInterval(refreshTimer);
   if (usageTimer) clearInterval(usageTimer);

@@ -5,6 +5,7 @@ contextBridge.exposeInMainWorld('api', {
   getSettings: () => ipcRenderer.invoke('get-settings'),
   updateSettings: (partial) => ipcRenderer.invoke('update-settings', partial),
   getMenubarItems: () => ipcRenderer.invoke('get-menubar-items'),
+  getPillColors: () => ipcRenderer.invoke('get-pill-colors'),
   getSubscriptionInfo: () => ipcRenderer.invoke('get-subscription-info'),
   refreshApiUsage: () => ipcRenderer.invoke('refresh-api-usage'),
   openDashboard: () => ipcRenderer.invoke('open-dashboard'),

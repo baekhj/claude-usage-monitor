@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html>
+<head>
+<style>
+  * { margin: 0; padding: 0; }
+  html, body { background: transparent; overflow: hidden; }
+  body { -webkit-font-smoothing: antialiased; }
+  #root {
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+    height: 22px;
+    font: 500 12px/22px -apple-system, BlinkMacSystemFont, 'SF Pro Text', system-ui;
+    white-space: nowrap;
+    letter-spacing: 0.2px;
+    padding-right: 2px;
+  }
+  .plain { color: var(--text-color); }
+  .pill {
+    color: var(--text-color);
+    background: var(--pill-bg);
+    padding: 0 7px;
+    border-radius: 5px;
+    height: 18px;
+    line-height: 18px;
+    font-weight: 500;
+  }
+  .sep {
+    color: var(--text-color);
+    opacity: 0.3;
+    font-size: 10px;
+    margin: 0 1px;
+  }
+</style>
+</head>
+<body>
+  <div id="root"></div>
+  <script>
+    function render(segments, sep) {
+      const root = document.getElementById('root');
+      let html = '';
+      for (let i = 0; i < segments.length; i++) {
+        if (i > 0) html += '<span class="sep">' + sep + '</span>';
+        const s = segments[i];
+        if (s.pill) {
+          const bg = s.color ? 'background:' + s.color : '';
+          html += '<span class="pill" style="' + bg + '">' + s.text + '</span>';
+        } else {
+          html += '<span class="plain">' + s.text + '</span>';
+        }
+      }
+      root.innerHTML = html;
+      return Math.ceil(root.getBoundingClientRect().width);
+    }
+
+    function setTheme(isDark) {
+      const r = document.documentElement.style;
+      r.setProperty('--text-color', isDark ? 'rgba(255,255,255,0.85)' : 'rgba(0,0,0,0.85)');
+      r.setProperty('--pill-bg', isDark ? 'rgba(255,255,255,0.14)' : 'rgba(0,0,0,0.08)');
+    }
+
+    setTheme(true);
+  </script>
+</body>
+</html>

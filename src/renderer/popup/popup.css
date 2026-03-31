@@ -420,6 +420,67 @@ header h1 {
   color: #6ee7b7;
 }
 
+/* Pill color swatches */
+.pill-color-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+
+.pill-color-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: #a0a0c0;
+  width: 32px;
+  flex-shrink: 0;
+}
+
+.pill-color-swatches {
+  display: flex;
+  gap: 6px;
+}
+
+.color-swatch {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  border: 2px solid transparent;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.color-swatch:hover {
+  transform: scale(1.2);
+}
+
+.color-swatch.active {
+  border-color: #fff;
+  box-shadow: 0 0 0 1px rgba(255,255,255,0.3);
+}
+
+.color-swatch.none {
+  background: rgba(255,255,255,0.06);
+  position: relative;
+  border: 2px solid rgba(255,255,255,0.2);
+}
+
+.color-swatch.none::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 14px;
+  height: 2px;
+  background: #f87171;
+  transform: translate(-50%, -50%) rotate(-45deg);
+  border-radius: 1px;
+}
+
+.color-swatch.none.active {
+  border-color: #f87171;
+}
+
 /* Refresh interval input */
 .refresh-input-row {
   display: flex;
