@@ -44,6 +44,32 @@
       </div>
     </section>
 
+    <!-- Today -->
+    <section class="card">
+      <div class="card-header">
+        <span class="card-title">Today</span>
+      </div>
+      <div class="stats-row">
+        <div class="stat">
+          <span class="stat-label">Input</span>
+          <span id="today-input" class="stat-value">--</span>
+        </div>
+        <div class="stat">
+          <span class="stat-label">Output</span>
+          <span id="today-output" class="stat-value">--</span>
+        </div>
+        <div class="stat">
+          <span class="stat-label">Cost</span>
+          <span id="today-cost" class="stat-value">--</span>
+        </div>
+        <div class="stat">
+          <span class="stat-label">Requests</span>
+          <span id="today-requests" class="stat-value">--</span>
+        </div>
+      </div>
+      <div id="today-models" class="model-breakdown"></div>
+    </section>
+
     <!-- 5-hour block detail -->
     <section class="card">
       <div class="card-header">
@@ -71,30 +97,31 @@
       <div id="block-models" class="model-breakdown"></div>
     </section>
 
-    <!-- Today -->
+    <!-- 7-Day total -->
     <section class="card">
       <div class="card-header">
-        <span class="card-title">Today</span>
+        <span class="card-title">7-Day Total</span>
+        <span id="weekly-reset" class="badge">--</span>
       </div>
       <div class="stats-row">
         <div class="stat">
           <span class="stat-label">Input</span>
-          <span id="today-input" class="stat-value">--</span>
+          <span id="week-input" class="stat-value">--</span>
         </div>
         <div class="stat">
           <span class="stat-label">Output</span>
-          <span id="today-output" class="stat-value">--</span>
+          <span id="week-output" class="stat-value">--</span>
         </div>
         <div class="stat">
           <span class="stat-label">Cost</span>
-          <span id="today-cost" class="stat-value">--</span>
+          <span id="week-cost" class="stat-value">--</span>
         </div>
         <div class="stat">
           <span class="stat-label">Requests</span>
-          <span id="today-requests" class="stat-value">--</span>
+          <span id="week-requests" class="stat-value">--</span>
         </div>
       </div>
-      <div id="today-models" class="model-breakdown"></div>
+      <div id="week-models" class="model-breakdown"></div>
     </section>
 
     <!-- Weekly chart -->

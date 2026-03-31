@@ -110,6 +110,18 @@ function updateUI({ stats, settings, apiUsage, percent }) {
   document.getElementById('today-cost').textContent = formatCost(today.totalCost);
   document.getElementById('today-requests').textContent = today.requestCount;
 
+  // === 7-Day Total ===
+  const wt = stats.weeklyTotal;
+  if (wt) {
+    document.getElementById('week-input').textContent = formatTokens(wt.totalInput);
+    document.getElementById('week-output').textContent = formatTokens(wt.totalOutput);
+    document.getElementById('week-cost').textContent = formatCost(wt.totalCost);
+    document.getElementById('week-requests').textContent = wt.requestCount;
+    document.getElementById('weekly-reset').textContent =
+      percent?.weeklyReset ? formatDuration(percent.weeklyReset - Date.now()) : '--';
+    renderModelBreakdown('week-models', wt.byModel);
+  }
+
   // Model breakdowns
   renderModelBreakdown('block-models', block.byModel);
   renderModelBreakdown('today-models', today.byModel);

@@ -266,6 +266,19 @@ function getProjectBreakdown(records) {
 }
 
 /**
+ * Get 7-day total stats
+ */
+function getWeeklyTotal(records) {
+  const weekStart = startOfWeek();
+  const weekRecords = records.filter((r) => r.timestamp >= weekStart);
+
+  return {
+    ...aggregateRecords(weekRecords),
+    byModel: byModelAggregate(weekRecords),
+  };
+}
+
+/**
  * Get full aggregated stats
  */
 function getStats() {
@@ -273,6 +286,7 @@ function getStats() {
   const block = getCurrentBlock(records);
   const today = getTodayStats(records);
   const weekly = getWeeklyBreakdown(records);
+  const weeklyTotal = getWeeklyTotal(records);
   const byModel = getModelBreakdown(records);
   const byProject = getProjectBreakdown(records);
 
@@ -280,6 +294,7 @@ function getStats() {
     block,
     today,
     weekly,
+    weeklyTotal,
     byModel,
     byProject,
     totalRecords: records.length,

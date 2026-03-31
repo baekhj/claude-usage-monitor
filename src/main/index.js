@@ -193,7 +193,7 @@ function togglePopup(bounds) {
     popupWindow.once('ready-to-show', () => {
       positionPopup(bounds);
       popupWindow.show();
-      sendStatsToPopup();
+      sendStatsToPopupOnce();
     });
     return;
   }
@@ -203,7 +203,7 @@ function togglePopup(bounds) {
     positionPopup(bounds);
     popupWindow.show();
     popupWindow.webContents.executeJavaScript('resetToMain()').catch(() => {});
-    sendStatsToPopup();
+    sendStatsToPopupOnce();
   }
 }
 
@@ -441,26 +441,25 @@ async function updateTrayTitle(stats) {
 }
 
 // ── Data flow ──
+function getStatsPayload() {
+  return {
+    stats: JSON.parse(JSON.stringify(getStats())),
+    settings: settings.get(),
+    apiUsage: latestApiUsage,
+    percent: getApiPercent(),
+  };
+}
+
 function sendStatsToPopup() {
-  if (popupWindow && !popupWindow.isDestroyed()) {
-    const stats = getStats();
-    const cfg = settings.get();
-    popupWindow.webContents.send('stats-update', {
-      stats: JSON.parse(JSON.stringify(stats)),
-      settings: cfg,
-      apiUsage: latestApiUsage,
-      percent: getApiPercent(),
-    });
-  }
+  // Dashboard only (popup is updated once on open via sendStatsToPopupOnce)
   if (dashboardWindow && !dashboardWindow.isDestroyed()) {
-    const stats = getStats();
-    const cfg = settings.get();
-    dashboardWindow.webContents.send('stats-update', {
-      stats: JSON.parse(JSON.stringify(stats)),
-      settings: cfg,
-      apiUsage: latestApiUsage,
-      percent: getApiPercent(),
-    });
+    dashboardWindow.webContents.send('stats-update', getStatsPayload());
+  }
+}
+
+function sendStatsToPopupOnce() {
+  if (popupWindow && !popupWindow.isDestroyed()) {
+    popupWindow.webContents.send('stats-update', getStatsPayload());
   }
 }
 
