@@ -145,10 +145,13 @@ function createPillWindow() {
   pillWindow.webContents.on('did-finish-load', () => { pillWindowReady = true; });
 }
 
-// ── Popup (pre-created, show/hide for instant response) ──
+// ── Popup (destroy on blur, pre-create next for speed) ──
 const popupW = 380, popupH = 640;
+let popupReady = false;
 
 function createPopupWindow() {
+  if (popupWindow && !popupWindow.isDestroyed()) popupWindow.destroy();
+  popupReady = false;
   popupWindow = new BrowserWindow({
     width: popupW,
     height: popupH,
@@ -166,7 +169,14 @@ function createPopupWindow() {
   });
 
   popupWindow.loadFile(path.join(__dirname, '..', 'renderer', 'popup', 'popup.html'));
-  popupWindow.on('blur', () => { if (popupWindow && !popupWindow.isDestroyed()) popupWindow.hide(); });
+  popupWindow.once('ready-to-show', () => { popupReady = true; });
+  popupWindow.on('blur', () => {
+    if (popupWindow && !popupWindow.isDestroyed()) {
+      popupWindow.destroy();
+      popupWindow = null;
+      createPopupWindow();
+    }
+  });
   popupWindow.on('closed', () => { popupWindow = null; });
 }
 
@@ -188,22 +198,25 @@ function positionPopup(bounds) {
 }
 
 function togglePopup(bounds) {
-  if (!popupWindow || popupWindow.isDestroyed()) {
+  if (popupWindow && !popupWindow.isDestroyed() && popupWindow.isVisible()) {
+    popupWindow.destroy();
+    popupWindow = null;
     createPopupWindow();
-    popupWindow.once('ready-to-show', () => {
-      positionPopup(bounds);
-      popupWindow.show();
-      sendStatsToPopupOnce();
-    });
     return;
   }
-  if (popupWindow.isVisible()) {
-    popupWindow.hide();
-  } else {
+  if (!popupWindow || popupWindow.isDestroyed()) {
+    createPopupWindow();
+  }
+  const show = () => {
     positionPopup(bounds);
     popupWindow.show();
     popupWindow.webContents.executeJavaScript('resetToMain()').catch(() => {});
     sendStatsToPopupOnce();
+  };
+  if (popupReady) {
+    show();
+  } else {
+    popupWindow.once('ready-to-show', show);
   }
 }
 
