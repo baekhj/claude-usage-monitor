@@ -1,3 +1,11 @@
+// ── Theme ──
+function applyTheme(theme) {
+  document.documentElement.setAttribute('data-theme', theme);
+  document.querySelectorAll('.theme-btn').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.theme === theme);
+  });
+}
+
 // ── Formatters ──
 function formatTokens(count) {
   if (count >= 1_000_000) return `${(count / 1_000_000).toFixed(1)}M`;
@@ -68,6 +76,7 @@ function updateUI({ stats, settings, apiUsage, percent }) {
   currentStats = stats;
   currentSettings = settings;
   currentPercent = percent;
+  applyTheme(settings?.theme || 'dark');
 
   const block = stats.block;
   const today = stats.today;
@@ -436,6 +445,7 @@ document.getElementById('notif-weekly').addEventListener('input', (e) => {
 // General settings
 function renderGeneralSettings() {
   document.getElementById('launch-login').checked = currentSettings?.launchAtLogin || false;
+  applyTheme(currentSettings?.theme || 'dark');
   renderPillColors();
 }
 
@@ -464,6 +474,14 @@ function renderPillColors() {
 
 document.getElementById('launch-login').addEventListener('change', async (e) => {
   currentSettings = await window.api.updateSettings({ launchAtLogin: e.target.checked });
+});
+
+document.querySelectorAll('.theme-btn').forEach(btn => {
+  btn.addEventListener('click', async () => {
+    const theme = btn.dataset.theme;
+    applyTheme(theme);
+    currentSettings = await window.api.updateSettings({ theme });
+  });
 });
 
 

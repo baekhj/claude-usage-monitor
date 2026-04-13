@@ -17,6 +17,7 @@ const DEFAULTS = {
     weeklyThresholds: [75, 90],
   },
   launchAtLogin: false,
+  theme: 'dark',
 };
 
 const PILL_COLORS = {

@@ -103,21 +103,51 @@ function parseJsonlFile(filePath) {
 }
 
 /**
- * Load all usage records from all JSONL files
+ * Load all usage records from all JSONL files (with per-file mtime cache)
  */
+const _fileCache = new Map(); // filepath → { mtimeMs, records }
+let _cachedAllRecords = null;
+
 function loadAllRecords() {
   const baseDirs = resolveJsonlDirs();
   const files = findJsonlFiles(baseDirs);
-  let allRecords = [];
+  let dirty = false;
 
+  // Check which files changed
+  const currentFiles = new Set(files);
   for (const file of files) {
-    const records = parseJsonlFile(file);
-    allRecords = allRecords.concat(records);
+    try {
+      const mtimeMs = fs.statSync(file).mtimeMs;
+      const cached = _fileCache.get(file);
+      if (!cached || cached.mtimeMs !== mtimeMs) {
+        _fileCache.set(file, { mtimeMs, records: parseJsonlFile(file) });
+        dirty = true;
+      }
+    } catch {
+      _fileCache.delete(file);
+      dirty = true;
+    }
   }
 
-  // Sort by timestamp ascending
-  allRecords.sort((a, b) => a.timestamp - b.timestamp);
-  return allRecords;
+  // Remove deleted files from cache
+  for (const cachedFile of _fileCache.keys()) {
+    if (!currentFiles.has(cachedFile)) {
+      _fileCache.delete(cachedFile);
+      dirty = true;
+    }
+  }
+
+  // Rebuild sorted records only if something changed
+  if (dirty || !_cachedAllRecords) {
+    let allRecords = [];
+    for (const { records } of _fileCache.values()) {
+      allRecords = allRecords.concat(records);
+    }
+    allRecords.sort((a, b) => a.timestamp - b.timestamp);
+    _cachedAllRecords = allRecords;
+  }
+
+  return _cachedAllRecords;
 }
 
 /**

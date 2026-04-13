@@ -1,5 +1,6 @@
 const { app, BrowserWindow, Tray, Menu, nativeImage, ipcMain, Notification, nativeTheme, screen } = require('electron');
 const path = require('path');
+const { Worker } = require('worker_threads');
 const isMac = process.platform === 'darwin';
 const { getStats } = require('./parser');
 const { JsonlWatcher } = require('./watcher');
@@ -19,10 +20,44 @@ let watcher = null;
 let refreshTimer = null;
 let usageTimer = null;
 let latestApiUsage = null;
+let statsWorker = null;
+let latestStats = null; // cached stats from worker
 
 // Track which thresholds have already fired to avoid repeat notifications
 let firedSessionThresholds = new Set();
 let firedWeeklyThresholds = new Set();
+
+// ── Worker-based async getStats ──
+function createStatsWorker() {
+  statsWorker = new Worker(path.join(__dirname, 'parser-worker.js'));
+  statsWorker.on('error', () => { statsWorker = null; });
+  statsWorker.on('exit', () => { statsWorker = null; });
+}
+
+function getStatsAsync() {
+  return new Promise((resolve) => {
+    if (!statsWorker) {
+      // Fallback to sync if worker is dead
+      resolve(getStats());
+      return;
+    }
+    const onMessage = (msg) => {
+      statsWorker.off('message', onMessage);
+      if (msg.ok) {
+        // Revive Date objects (serialized as strings through worker)
+        const s = msg.stats;
+        s.block.blockStart = new Date(s.block.blockStart);
+        s.block.blockEnd = new Date(s.block.blockEnd);
+        if (s.weekly) s.weekly.forEach(d => { d.date = new Date(d.date); });
+        resolve(s);
+      } else {
+        resolve(getStats());
+      }
+    };
+    statsWorker.on('message', onMessage);
+    statsWorker.postMessage('getStats');
+  });
+}
 
 // ── Tray Icon (pie charts only) ──
 function pctColor(pct) {
@@ -459,7 +494,7 @@ async function updateTrayTitle(stats) {
 // ── Data flow ──
 function getStatsPayload() {
   return {
-    stats: JSON.parse(JSON.stringify(getStats())),
+    stats: latestStats || getStats(),
     settings: settings.get(),
     apiUsage: latestApiUsage,
     percent: getApiPercent(),
@@ -479,8 +514,9 @@ function sendStatsToPopupOnce() {
   }
 }
 
-function updateStats() {
-  const stats = getStats();
+async function updateStats() {
+  const stats = await getStatsAsync();
+  latestStats = stats;
   updateTrayTitle(stats);
   sendStatsToPopup();
 }
@@ -488,7 +524,7 @@ function updateStats() {
 async function refreshApiUsage() {
   latestApiUsage = await getUsageFromAPI();
   checkAndNotify(getApiPercent());
-  updateStats();
+  await updateStats();
 }
 
 // ── Auto-start ──
@@ -573,6 +609,7 @@ app.whenReady().then(() => {
   const cfg = settings.get();
   applyLaunchAtLogin(cfg.launchAtLogin);
 
+  createStatsWorker();
   createTray();
   createPillWindow();
   createPopupWindow();
@@ -597,4 +634,5 @@ app.on('before-quit', () => {
   if (watcher) watcher.stop();
   if (refreshTimer) clearInterval(refreshTimer);
   if (usageTimer) clearInterval(usageTimer);
+  if (statsWorker) statsWorker.terminate();
 });
