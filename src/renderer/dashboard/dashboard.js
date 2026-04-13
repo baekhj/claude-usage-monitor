@@ -1,6 +1,6 @@
 function formatTokens(c) { if(c>=1e6)return(c/1e6).toFixed(1)+'M'; if(c>=1e3)return(c/1e3).toFixed(1)+'K'; return String(c); }
 function formatCost(u) { return u>=1?`$${u.toFixed(2)}`:`$${u.toFixed(4)}`; }
-function formatDuration(ms) { if(ms<=0)return'0m'; const h=Math.floor(ms/3.6e6),m=Math.floor((ms%3.6e6)/6e4); return h>0?`${h}h ${m}m`:`${m}m`; }
+function formatDuration(ms) { if(ms<=0)return'0m'; const t=Math.floor(ms/6e4),d=Math.floor(t/1440),h=Math.floor((t%1440)/60),m=t%60; if(d>0)return`${d}d ${h}h${m>0?' '+m+'m':''}`; return h>0?`${h}h ${m}m`:`${m}m`; }
 function modelClass(n) { if(n.includes('opus'))return'opus'; if(n.includes('sonnet'))return'sonnet'; if(n.includes('haiku'))return'haiku'; return''; }
 function shortModel(n) { const c=modelClass(n); return c?c.charAt(0).toUpperCase()+c.slice(1):n; }
 

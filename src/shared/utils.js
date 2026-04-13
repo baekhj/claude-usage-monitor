@@ -5,8 +5,11 @@ const { MODEL_PRICING, DEFAULT_PRICING, BLOCK_MS } = require('./constants');
  */
 function formatDuration(ms) {
   if (ms <= 0) return '0m';
-  const hours = Math.floor(ms / (60 * 60 * 1000));
-  const minutes = Math.floor((ms % (60 * 60 * 1000)) / (60 * 1000));
+  const totalMinutes = Math.floor(ms / (60 * 1000));
+  const days = Math.floor(totalMinutes / (24 * 60));
+  const hours = Math.floor((totalMinutes % (24 * 60)) / 60);
+  const minutes = totalMinutes % 60;
+  if (days > 0) return `${days}d ${hours}h${minutes > 0 ? ' ' + minutes + 'm' : ''}`;
   if (hours > 0) return `${hours}h ${minutes}m`;
   return `${minutes}m`;
 }

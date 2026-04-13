@@ -303,8 +303,11 @@ function showNotification(title, body) {
 // ── Menubar ──
 function compactDuration(ms) {
   if (ms <= 0) return '0m';
-  const h = Math.floor(ms / 3600000);
-  const m = Math.floor((ms % 3600000) / 60000);
+  const totalMin = Math.floor(ms / 60000);
+  const d = Math.floor(totalMin / 1440);
+  const h = Math.floor((totalMin % 1440) / 60);
+  const m = totalMin % 60;
+  if (d > 0) return `${d}d${h}h${m > 0 ? m + 'm' : ''}`;
   if (h > 0) return `${h}h${m > 0 ? m + 'm' : ''}`;
   return `${m}m`;
 }
