@@ -391,21 +391,21 @@ async function updateTrayPill(segments) {
 
   const cfg = settings.get();
   const sep = (cfg.menubar.separator || ' · ').trim() || '·';
-  const isDark = nativeTheme.shouldUseDarkColors;
-  const mode = isDark ? 'dark' : 'light';
   const pillColors = cfg.menubar.pillColors || {};
   const COLORS = settings.PILL_COLORS;
 
-  // Resolve per-segment colors
+  // Resolve per-segment bg & text colors from solid PILL_COLORS
   const colored = segments.map(s => {
     if (s.pill && s.group) {
       const key = pillColors[s.group] || 'default';
-      return { ...s, color: COLORS[key]?.[mode] || COLORS.default[mode] };
+      const c = COLORS[key] || COLORS.default;
+      return { ...s, color: c.bg, textColor: c.text };
     }
     return s;
   });
 
   try {
+    const isDark = nativeTheme.shouldUseDarkColors;
     await pillWindow.webContents.executeJavaScript(`setTheme(${isDark})`);
     const width = await pillWindow.webContents.executeJavaScript(
       `render(${JSON.stringify(colored)}, ${JSON.stringify(sep)})`

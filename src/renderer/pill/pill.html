@@ -43,8 +43,10 @@
         if (i > 0) html += '<span class="sep">' + sep + '</span>';
         const s = segments[i];
         if (s.pill) {
-          const bg = s.color ? 'background:' + s.color : '';
-          html += '<span class="pill" style="' + bg + '">' + s.text + '</span>';
+          let style = '';
+          if (s.color) style += 'background:' + s.color + ';';
+          if (s.textColor) style += 'color:' + s.textColor + ';';
+          html += '<span class="pill" style="' + style + '">' + s.text + '</span>';
         } else {
           html += '<span class="plain">' + s.text + '</span>';
         }
@@ -55,8 +57,8 @@
 
     function setTheme(isDark) {
       const r = document.documentElement.style;
-      r.setProperty('--text-color', isDark ? 'rgba(255,255,255,0.85)' : 'rgba(0,0,0,0.85)');
-      r.setProperty('--pill-bg', isDark ? 'rgba(255,255,255,0.14)' : 'rgba(0,0,0,0.08)');
+      r.setProperty('--text-color', isDark ? '#fff' : 'rgba(0,0,0,0.95)');
+      r.setProperty('--pill-bg', isDark ? 'rgba(255,255,255,0.28)' : 'rgba(0,0,0,0.18)');
     }
 
     setTheme(true);

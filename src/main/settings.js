@@ -20,13 +20,13 @@ const DEFAULTS = {
 };
 
 const PILL_COLORS = {
-  none:    { dark: null, light: null, swatch: 'transparent' },
-  default: { dark: 'rgba(255,255,255,0.14)', light: 'rgba(0,0,0,0.08)',  swatch: '#888' },
-  green:   { dark: 'rgba(110,231,183,0.30)', light: 'rgba(16,185,129,0.20)', swatch: '#6ee7b7' },
-  blue:    { dark: 'rgba(96,165,250,0.30)',  light: 'rgba(59,130,246,0.20)', swatch: '#60a5fa' },
-  purple:  { dark: 'rgba(192,132,252,0.30)', light: 'rgba(139,92,246,0.20)', swatch: '#c084fc' },
-  amber:   { dark: 'rgba(251,191,36,0.30)',  light: 'rgba(217,119,6,0.20)',  swatch: '#fbbf24' },
-  red:     { dark: 'rgba(248,113,113,0.30)', light: 'rgba(239,68,68,0.20)',  swatch: '#f87171' },
+  none:    { bg: null, text: null, swatch: 'transparent' },
+  default: { bg: '#5a5a5a', text: '#fff', swatch: '#888' },
+  green:   { bg: '#1a7a52', text: '#fff', swatch: '#6ee7b7' },
+  blue:    { bg: '#2c6fcc', text: '#fff', swatch: '#60a5fa' },
+  purple:  { bg: '#7048b8', text: '#fff', swatch: '#c084fc' },
+  amber:   { bg: '#a07610', text: '#fff', swatch: '#fbbf24' },
+  red:     { bg: '#c43a31', text: '#fff', swatch: '#f87171' },
 };
 
 const MENUBAR_ITEMS = {
