@@ -8,7 +8,13 @@
 ![License](https://img.shields.io/badge/license-ISC-green)
 
 <p align="center">
-  <img src="assets/screenshot-popup.png" alt="Popup Dashboard" width="380">
+  <img src="assets/screenshot-menubar.png" alt="Menubar Pills" height="44">
+</p>
+
+<p align="center">
+  <img src="assets/screenshot-popup.png" alt="Popup Dashboard (Dark)" width="340">
+  &nbsp;&nbsp;
+  <img src="assets/screenshot-popup-light.png" alt="Popup Dashboard (Light)" width="340">
 </p>
 
 ## Highlights
