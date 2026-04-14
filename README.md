@@ -1,8 +1,9 @@
 # Claude Usage Monitor
 
-> macOS-only menubar app that displays your Claude Code usage limits in real-time.
+> Real-time Claude Code usage monitoring in your menubar. Know your limits before you hit them.
 
-![Platform](https://img.shields.io/badge/platform-macOS%20only-lightgrey?logo=apple)
+![Version](https://img.shields.io/github/v/release/baekhj/claude-usage-monitor?label=version)
+![Platform](https://img.shields.io/badge/platform-macOS%20|%20Windows-blue?logo=electron)
 ![Electron](https://img.shields.io/badge/Electron-41-47848F?logo=electron)
 ![License](https://img.shields.io/badge/license-ISC-green)
 
@@ -10,124 +11,67 @@
   <img src="assets/screenshot-popup.png" alt="Popup Dashboard" width="380">
 </p>
 
-### Popup Dashboard
+## Highlights
 
-| Section | Description |
-|---------|-------------|
-| **5-Hour Limit** | Anthropic API 기준 5시간 슬라이딩 윈도우 사용률(%). 프로그레스 바 + 리셋까지 남은 시간 |
-| **7-Day Limit** | 7일 사용률(%). 주간 한도 대비 현재 소비량 |
-| **5-Hour Block** | 로컬 JSONL 기반 상세 — Input/Output 토큰, 추정 비용, 요청 수. 모델별 breakdown (Opus/Sonnet/Haiku) |
-| **Today** | 오늘 하루 누적 사용량. 동일하게 모델별 breakdown 포함 |
-| **This Week** | 최근 7일간 일별 비용 바 차트. 오늘은 초록색으로 강조 |
+- **Menubar at a glance** — Usage %, remaining time, cost displayed as pill-style badges
+- **Dynamic color alerts** — Pill color changes automatically: green → yellow → orange → red as usage increases
+- **Dark & Light theme** — Choose your preferred popup appearance
+- **Zero config** — Reads Claude Code credentials automatically from macOS Keychain / Windows Credential Manager
+- **Lightweight** — Worker thread parsing, mtime caching, minimal API polling (~9 tokens per check)
 
 ---
 
 ## Features
 
-- **Real-time usage monitoring** — 5-hour and 7-day utilization directly from Anthropic's API response headers
-- **Menubar display** — Customizable: usage %, remaining time, cost, requests, active model (drag to reorder)
-- **Popup dashboard** — Click menubar icon for quick overview with per-model breakdown
-- **Full dashboard** — Separate window with project/model tables and weekly cost chart
-- **Local JSONL parsing** — Token usage and cost estimation from `~/.claude/projects/` log files
-- **Model breakdown** — Per-model stats (Opus / Sonnet / Haiku) for 5h block and today
-- **Project breakdown** — Usage grouped by Claude Code project directory
-- **Notifications** — macOS alerts at configurable usage thresholds (5h & 7d)
-- **Configurable refresh** — API polling interval adjustable in seconds (default: 5 min)
+| Feature | Description |
+|---------|-------------|
+| **5H / 7D Usage** | Real-time utilization from Anthropic API response headers |
+| **Dynamic Pill Colors** | Automatic color change by usage: 0~50% green, 50~75% amber, 75~90% orange, 90%+ red |
+| **Popup Dashboard** | Per-model breakdown (Opus/Sonnet/Haiku), today's stats, 7-day chart |
+| **Time Display** | Smart formatting: `4d2h30m` for long durations, `1h45m` for short |
+| **Notifications** | macOS alerts at configurable thresholds (5H & 7D) |
+| **Customizable Menubar** | Choose which items to show, drag to reorder, pick separator style |
+| **Dark / Light Theme** | Toggle in popup Settings |
+| **Project Breakdown** | Usage grouped by Claude Code project directory |
+| **Auto Update** | Check for new releases from within the app |
 
-## Platform
+---
 
-**macOS only.** This app depends on:
-- macOS Keychain for reading Claude Code OAuth credentials (`security` CLI)
-- macOS-specific Electron APIs (`app.dock.hide()`)
-- JSONL log paths at `~/.claude/projects/` (macOS/Linux path format)
+## Popup Dashboard
 
-Windows and Linux are not supported.
+| Section | Description |
+|---------|-------------|
+| **5-Hour Limit** | API-based 5h sliding window utilization (%) with progress bar & reset countdown |
+| **7-Day Limit** | API-based 7-day utilization (%) with progress bar & reset countdown |
+| **Today** | Today's accumulated tokens, cost, and requests with model breakdown |
+| **5-Hour Block** | Local JSONL-based detail — tokens, cost, requests per model |
+| **7-Day Total** | Weekly total with model breakdown |
+| **This Week** | Daily cost bar chart (today highlighted in green) |
 
-## Prerequisites
-
-- **macOS** 10.15 (Catalina) or later
-- **Claude Code** CLI installed and **logged in** (Pro / Max / Team subscription)
-- **Node.js** 18+ (for building from source only)
-
-## How It Works
-
-### Authentication
-
-No login required in this app. It reads OAuth credentials automatically from macOS Keychain entry `Claude Code-credentials`, which is created when you log in to Claude Code CLI.
-
-On first launch, macOS may ask to allow Keychain access — click "Always Allow".
-
-### Usage Data (API)
-
-Sends a minimal Haiku API request (`max_tokens: 1`, cost < $0.001) to `api.anthropic.com/v1/messages` with the `anthropic-beta: oauth-2025-04-20` header. The response headers contain official utilization data:
-
-```
-anthropic-ratelimit-unified-5h-utilization: 0.04
-anthropic-ratelimit-unified-7d-utilization: 0.02
-anthropic-ratelimit-unified-5h-reset: <unix-timestamp>
-anthropic-ratelimit-unified-7d-reset: <unix-timestamp>
-```
-
-> **Note:** Each API poll consumes ~9 tokens on Haiku. At the default 5-minute interval, this is negligible.
-
-### Token & Cost Data (Local)
-
-Parses JSONL files from `~/.claude/projects/**/*.jsonl` (including subagent logs) to aggregate:
-- Per-request token counts (input, output, cache creation, cache read)
-- Cost estimation using model-specific pricing (Opus / Sonnet / Haiku)
-- Breakdown by model, project, and time period (5h block, today, 7 days)
-
-Cost figures are **estimates** based on public API pricing — actual billing may differ.
+---
 
 ## Installation
 
-### 사전 요구사항
+### Prerequisites
 
-- **Claude Code CLI**가 설치되어 있고 **로그인된 상태**여야 합니다 (Pro / Max / Team 구독)
-- 로그인이 안 되어 있으면 터미널에서 `claude` 실행 후 로그인하세요
-- 로그인하면 macOS Keychain에 인증 정보가 자동 저장됩니다
+- **Claude Code CLI** installed and **logged in** (Pro / Max / Team subscription)
+- If not logged in, run `claude` in terminal and sign in
 
-### Option 1: .app 파일 직접 전달받은 경우
+### Download
 
-1. `Claude Usage Monitor.app`을 `Applications` 폴더로 복사
-2. 앱을 **우클릭(또는 Control+클릭) → "열기(Open)"** 클릭
-3. "확인되지 않은 개발자" 경고 팝업에서 **"열기(Open)"** 클릭
-4. Keychain 접근 팝업이 뜨면 → **"항상 허용(Always Allow)"** 클릭
+Go to [**Releases**](../../releases) and download the latest version:
 
-> 이후 실행부터는 더블클릭으로 바로 열립니다. 터미널 명령은 필요 없습니다.
+| Platform | File |
+|----------|------|
+| macOS (Apple Silicon) | `*-arm64-mac.zip` |
+| macOS (Intel) | `*-mac.zip` |
+| Windows | `*.exe` |
 
-#### ⚠️ "악성 소프트웨어" 또는 "손상되었기 때문에 열 수 없습니다" 에러가 나오는 경우
+**macOS:** Unzip → move to Applications → right-click → Open (first time only).
 
-이 앱은 Apple Developer 인증서로 서명되지 않았기 때문에 macOS Gatekeeper가 차단할 수 있습니다.
-악성 프로그램이 아니며, 소스 코드가 모두 공개되어 있습니다.
+> **Gatekeeper blocked?** Run `xattr -cr /Applications/Claude\ Usage\ Monitor.app` in Terminal, then open again.
 
-**방법 1: 터미널에서 차단 해제 (권장)**
-```bash
-xattr -cr /Applications/Claude\ Usage\ Monitor.app
-```
-실행 후 앱을 더블클릭하면 정상적으로 열립니다.
-
-**방법 2: 시스템 설정에서 허용**
-1. 앱을 한 번 더블클릭합니다 (차단됨)
-2. **시스템 설정 → 개인정보 보호 및 보안** 으로 이동
-3. 하단에 "Claude Usage Monitor이(가) 차단되었습니다" 메시지 옆 **"확인 없이 열기"** 클릭
-4. 앱을 다시 더블클릭
-
-**방법 3: 우클릭으로 열기**
-1. 앱을 **우클릭(또는 Control+클릭)** → **"열기"** 선택
-2. 경고 팝업에서 **"열기"** 클릭
-
-> 한 번 허용하면 이후부터는 더블클릭으로 바로 실행됩니다.
-
-### Option 2: DMG 또는 ZIP 다운로드
-
-1. [Releases](../../releases)에서 최신 버전 다운로드
-   - Apple Silicon (M1/M2/M3/M4): `*-arm64-mac.zip`
-   - Intel Mac: `*-mac.zip`
-2. ZIP 압축 해제 후 `Claude Usage Monitor.app`을 `Applications` 폴더로 이동
-3. 위의 Gatekeeper 우회 방법으로 실행
-
-### Option 3: From Source
+### Build from Source
 
 ```bash
 git clone https://github.com/baekhj/claude-usage-monitor.git
@@ -136,108 +80,86 @@ npm install
 npm start
 ```
 
-개발 중이거나 직접 빌드하고 싶을 때 사용합니다.
-Node.js 18+ 가 설치되어 있어야 합니다.
+---
 
-### Option 3: Build .app / DMG directly
+## How It Works
 
-```bash
-git clone https://github.com/baekhj/claude-usage-monitor.git
-cd claude-usage-monitor
-npm install
+### Authentication
 
-# Apple Silicon (M1/M2/M3/M4)
-npm run build:dir -- --arm64
-open dist/mac-arm64/Claude\ Usage\ Monitor.app
+No login required in this app. It reads OAuth credentials automatically:
+- **macOS:** from Keychain entry `Claude Code-credentials`
+- **Windows:** from Windows Credential Manager
 
-# Intel Mac
-npm run build:dir -- --x64
-open dist/mac/Claude\ Usage\ Monitor.app
+On first launch, macOS may ask to allow Keychain access — click **"Always Allow"**.
+
+### Usage Data (API)
+
+Sends a minimal Haiku request (`max_tokens: 1`, cost < $0.001) to read utilization from response headers:
+
+```
+anthropic-ratelimit-unified-5h-utilization: 0.04
+anthropic-ratelimit-unified-7d-utilization: 0.02
+anthropic-ratelimit-unified-5h-reset: <unix-timestamp>
+anthropic-ratelimit-unified-7d-reset: <unix-timestamp>
 ```
 
-## Usage
+### Token & Cost Data (Local)
 
-앱을 실행하면 macOS 메뉴바에 사용량이 표시됩니다. (Dock 아이콘 없음, 메뉴바 전용 앱)
+Parses JSONL files from `~/.claude/projects/**/*.jsonl` to aggregate tokens, cost, and requests per model/project/time period. Cost figures are **estimates** based on public API pricing.
 
-별도 로그인이 필요 없습니다 — Claude Code CLI에 로그인되어 있으면 자동으로 Keychain에서 인증 정보를 읽습니다.
+---
 
-- **Left-click** menubar → popup dashboard
-- **Right-click** menubar → Refresh / Dashboard / Quit
+## Settings
 
-### Settings (gear icon in popup)
+Access via the gear icon in the popup.
 
-**Menubar Items** — check/uncheck and drag to reorder:
+| Setting | Description |
+|---------|-------------|
+| **Menubar Items** | Check/uncheck and drag to reorder what's shown in menubar |
+| **API Refresh Interval** | Polling frequency in seconds (min 10s, default 300s) |
+| **Separator** | Choose between ` · ` `\|` `space` `/` |
+| **Theme** | Dark / Light popup appearance |
+| **Dynamic Pill Colors** | ON: auto color by usage % / OFF: pick static color per group |
+| **Pill Colors** | When dynamic is off, choose per-group color (Plan, 5H, 7D) |
+| **Notifications** | 5H thresholds (e.g. 50, 75, 90) and 7D thresholds (e.g. 75, 90) |
+| **Launch at Login** | Start automatically on system boot |
 
-| Item | Description |
-|------|-------------|
-| 5h Usage % | Current 5-hour utilization from API |
-| 5h Remaining % | Remaining 5-hour capacity |
-| 7d Usage % | Current 7-day utilization from API |
-| Block Tokens | Total tokens in current 5h window (local) |
-| Block Cost | Estimated cost in current 5h window (local) |
-| Today Cost | Today's estimated total cost (local) |
-| Block Remaining | Time until 5h window resets |
-| Block Requests | Request count in current 5h window (local) |
-| Today Requests | Today's total request count (local) |
-| Active Model | Last used model name |
-
-**API Refresh Interval** — polling frequency in seconds (minimum 10s, default 300s)
-
-**Notifications** — usage threshold alerts:
-- 5h thresholds: e.g., `50, 75, 90`
-- 7d thresholds: e.g., `75, 90`
-- Auto-reset when usage drops after a window reset
+---
 
 ## Project Structure
 
 ```
-claude-usage-monitor/
-├── package.json
-├── src/
-│   ├── main/
-│   │   ├── index.js          # Electron main (Tray, Popup, Dashboard, IPC, Notifications)
-│   │   ├── parser.js         # JSONL parsing & usage aggregation
-│   │   ├── watcher.js        # File change detection (fs.watch)
-│   │   ├── usage-api.js      # Keychain OAuth + Messages API for utilization headers
-│   │   ├── settings.js       # Persistent settings (JSON)
-│   │   └── preload.js        # Context bridge for renderer
-│   ├── renderer/
-│   │   ├── popup/            # Menubar popup (HTML/CSS/JS)
-│   │   └── dashboard/        # Full dashboard window (HTML/CSS/JS)
-│   └── shared/
-│       ├── constants.js      # Model pricing, refresh intervals, JSONL paths
-│       └── utils.js          # Formatters, cost calculation
-├── assets/
-├── docs/
-│   └── claude_usage_app_plan.md
-└── README.md
+src/
+├── main/
+│   ├── index.js            # Main process (Tray, BrowserWindow, IPC, Worker)
+│   ├── parser.js           # JSONL parsing with per-file mtime cache
+│   ├── parser-worker.js    # Worker thread for non-blocking parsing
+│   ├── settings.js         # Settings, pill colors, dynamic color logic
+│   ├── usage-api.js        # Anthropic API (OAuth/Keychain)
+│   ├── watcher.js          # File change detection (fs.watch)
+│   ├── updater.js          # GitHub release auto-update
+│   └── preload.js          # Context bridge for renderer
+├── renderer/
+│   ├── popup/              # Menubar popup (dark/light theme)
+│   ├── dashboard/          # Full dashboard window
+│   └── pill/               # Offscreen pill renderer for menubar
+└── shared/
+    ├── constants.js         # Model pricing, intervals, paths
+    └── utils.js             # Formatters, cost calculation
 ```
 
 ## Privacy & Security
 
-- Reads OAuth credentials **locally** from macOS Keychain — this app never stores or transmits your credentials elsewhere
-- Communicates **only** with `api.anthropic.com` (Messages API)
+- Reads credentials **locally** from OS keychain — never stored or transmitted elsewhere
+- Communicates **only** with `api.anthropic.com`
 - No telemetry, no analytics, no third-party services
-- All JSONL data is read locally from `~/.claude/projects/`
-- Settings stored locally in Electron's `userData` directory
-
-## Tech Stack
-
-| Component | Technology |
-|-----------|-----------|
-| Framework | Electron 41 |
-| UI | HTML + CSS + Vanilla JS |
-| Data | Local JSONL parsing + Anthropic API response headers |
-| Auth | macOS Keychain (automatic, read-only) |
-| Settings | Local JSON file |
+- All JSONL data read locally from `~/.claude/projects/`
 
 ## Known Limitations
 
-- **macOS only** — depends on macOS Keychain and `security` CLI
 - **Requires Claude Code login** — no standalone API key support
-- **Cost estimates are approximate** — based on public pricing, may not match actual billing
-- **Launch at login** requires a signed/notarized build to work properly
-- **Not code-signed** — macOS Gatekeeper may block first launch (bypass via System Settings → Privacy & Security)
+- **Cost estimates are approximate** — based on public pricing, may differ from actual billing
+- **Not code-signed** — macOS Gatekeeper may block first launch
 
 ## Credits
 
