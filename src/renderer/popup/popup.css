@@ -666,6 +666,35 @@ header h1 {
   font-weight: 600;
 }
 
+/* Dynamic color gradient preview */
+.dynamic-gradient-bar {
+  display: flex;
+  border-radius: 6px;
+  overflow: hidden;
+  height: 28px;
+}
+
+.dynamic-gradient-seg {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+  font-weight: 600;
+  color: #fff;
+  position: relative;
+}
+
+.dynamic-labels {
+  display: flex;
+  margin-top: 4px;
+}
+
+.dynamic-label {
+  font-size: 9px;
+  color: var(--text-dimmer);
+  text-align: center;
+}
+
 /* Update section */
 .update-status {
   margin-bottom: 10px;

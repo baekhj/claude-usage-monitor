@@ -447,6 +447,7 @@ function renderGeneralSettings() {
   document.getElementById('launch-login').checked = currentSettings?.launchAtLogin || false;
   applyTheme(currentSettings?.theme || 'dark');
   renderPillColors();
+  renderDynamicSettings();
 }
 
 function renderPillColors() {
@@ -484,6 +485,58 @@ document.querySelectorAll('.theme-btn').forEach(btn => {
   });
 });
 
+// ── Dynamic Colors ──
+const DYNAMIC_COLORS = [
+  { max: 50,  bg: '#1a7a52', label: '~50%' },
+  { max: 75,  bg: '#a07610', label: '~75%' },
+  { max: 90,  bg: '#c46a15', label: '~90%' },
+  { max: 100, bg: '#c43a31', label: '90%+' },
+];
+
+function getDynamicColorForPct(pct) {
+  for (const level of DYNAMIC_COLORS) {
+    if (pct <= level.max) return level;
+  }
+  return DYNAMIC_COLORS[DYNAMIC_COLORS.length - 1];
+}
+
+function renderDynamicSettings() {
+  const enabled = currentSettings?.menubar?.dynamicColors !== false;
+  document.getElementById('dynamic-colors').checked = enabled;
+
+  // Show/hide static 5h/7d color pickers (hidden when dynamic is on)
+  const s5h = document.getElementById('static-color-5h');
+  const s7d = document.getElementById('static-color-7d');
+  if (s5h) s5h.style.display = enabled ? 'none' : '';
+  if (s7d) s7d.style.display = enabled ? 'none' : '';
+
+  // Preview section
+  const preview = document.getElementById('dynamic-preview');
+  if (preview) preview.style.display = enabled ? '' : 'none';
+
+  // Render gradient bar: 0% → 100% with color segments
+  const bar = document.querySelector('.dynamic-gradient-bar');
+  const labels = document.querySelector('.dynamic-labels');
+  if (bar) {
+    let prev = 0;
+    bar.innerHTML = DYNAMIC_COLORS.map(c => {
+      const width = c.max - prev;
+      prev = c.max;
+      return `<div class="dynamic-gradient-seg" style="background:${c.bg};flex:${width}">${c.label}</div>`;
+    }).join('');
+  }
+  if (labels) {
+    labels.innerHTML = '<div class="dynamic-label" style="flex:1;text-align:left">0%</div>' +
+      '<div class="dynamic-label" style="flex:1;text-align:right">100%</div>';
+  }
+}
+
+document.getElementById('dynamic-colors').addEventListener('change', async (e) => {
+  currentSettings = await window.api.updateSettings({
+    menubar: { ...currentSettings.menubar, dynamicColors: e.target.checked }
+  });
+  renderDynamicSettings();
+});
 
 document.getElementById('settings-btn').addEventListener('click', showSettings);
 document.getElementById('settings-back').addEventListener('click', hideSettings);

@@ -220,14 +220,28 @@
           <span class="pill-color-label">Plan</span>
           <div class="pill-color-swatches"></div>
         </div>
-        <div class="pill-color-row" data-group="5h">
+        <div id="static-color-5h" class="pill-color-row" data-group="5h">
           <span class="pill-color-label">5H</span>
           <div class="pill-color-swatches"></div>
         </div>
-        <div class="pill-color-row" data-group="7d">
+        <div id="static-color-7d" class="pill-color-row" data-group="7d">
           <span class="pill-color-label">7D</span>
           <div class="pill-color-swatches"></div>
         </div>
+      </div>
+    </section>
+
+    <section class="card">
+      <div class="card-header">
+        <span class="card-title">Dynamic Pill Colors</span>
+      </div>
+      <label class="toggle-row">
+        <input type="checkbox" id="dynamic-colors">
+        <span>Change color by usage %</span>
+      </label>
+      <div id="dynamic-preview" style="margin-top:10px">
+        <div class="dynamic-gradient-bar"></div>
+        <div class="dynamic-labels"></div>
       </div>
     </section>
 

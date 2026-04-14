@@ -5,7 +5,7 @@
 - Claude Code 토큰 사용량 실시간 모니터링 (5H 슬라이딩 윈도우 / 7D 합계)
 - Pill 스타일 메뉴바 표시, 그룹별 색상 커스터마이징
 - GitHub: baekhj/claude-usage-monitor
-- 현재 버전: v1.5.0
+- 현재 버전: v1.6.0
 
 ## 아키텍처
 
@@ -49,8 +49,12 @@ src/
 - 알림 임계값: 5H → [50%, 75%, 90%], 7D → [75%, 90%]
 - 테마: `dark` (dark / light 선택 가능)
 
-### Pill 색상 (settings.js PILL_COLORS)
-- 불투명 solid 배경 + 흰색 텍스트 (메뉴바 테마 무관하게 가독성 확보)
+### Pill 색상 (settings.js)
+- **고정 색상** (`PILL_COLORS`): 불투명 solid 배경 + 흰색 텍스트, `{ bg, text, swatch }` 구조
+- **동적 색상** (`DYNAMIC_COLORS`, `getDynamicColor()`): 사용률에 따라 자동 변경
+  - 0~50%: 초록(#1a7a52) → 50~75%: 노랑(#a07610) → 75~90%: 주황(#c46a15) → 90%+: 빨강(#c43a31)
+  - `menubar.dynamicColors: true` (기본값) — 5H/7D pill에 적용
+  - OFF 시 기존 고정 색상 사용 (Plan은 항상 고정 색상)
 - 색상: none, default(#5a5a5a), green, blue, purple, amber, red
 - `{ bg, text, swatch }` 구조 (이전 `{ dark, light, swatch }` → v1.4.5에서 변경)
 
@@ -138,6 +142,7 @@ open "dist/mac-arm64/Claude Usage Monitor.app"
 - 릴리즈 빌드: `npm run build:arm64` (arm64 + x64 zip 모두 생성)
 
 ## 최근 변경 이력
+- **v1.6.0**: 사용률 기반 동적 pill 색상 (초록→노랑→주황→빨강), 설정에서 ON/OFF 가능
 - **v1.5.0**: 팝업 다크/라이트 테마 선택, Worker Thread + mtime 캐시 성능 개선
 - **v1.4.6**: 남은 시간 24시간 초과 시 일 단위 표시 (4d2h30m)
 - **v1.4.5**: pill 배경을 불투명 solid 색상으로 변경, 가독성 개선

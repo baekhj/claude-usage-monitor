@@ -430,11 +430,20 @@ async function updateTrayPill(segments) {
   const cfg = settings.get();
   const sep = (cfg.menubar.separator || ' · ').trim() || '·';
   const pillColors = cfg.menubar.pillColors || {};
+  const dynamicEnabled = cfg.menubar.dynamicColors !== false;
   const COLORS = settings.PILL_COLORS;
+  const pct = getApiPercent();
 
-  // Resolve per-segment bg & text colors from solid PILL_COLORS
+  // Resolve per-segment bg & text colors
   const colored = segments.map(s => {
     if (s.pill && s.group) {
+      // Dynamic color: override based on usage percentage
+      if (dynamicEnabled && (s.group === '5h' || s.group === '7d')) {
+        const usagePct = s.group === '5h' ? (pct?.used ?? 0) : (pct?.weekly ?? 0);
+        const dc = settings.getDynamicColor(usagePct);
+        return { ...s, color: dc.bg, textColor: dc.text };
+      }
+      // Static color from user setting
       const key = pillColors[s.group] || 'default';
       const c = COLORS[key] || COLORS.default;
       return { ...s, color: c.bg, textColor: c.text };

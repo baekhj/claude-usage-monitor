@@ -9,6 +9,7 @@ const DEFAULTS = {
     items: ['icon5h', 'icon7d', 'usagePct', 'remaining', 'costToday'],
     separator: ' · ',
     pillColors: { plan: 'none', '5h': 'none', '7d': 'none' },
+    dynamicColors: true,
   },
   apiRefreshSeconds: 300,
   notifications: {
@@ -85,4 +86,20 @@ function update(partial) {
   return merged;
 }
 
-module.exports = { get, update, MENUBAR_ITEMS, DEFAULTS, PILL_COLORS };
+// Dynamic color based on usage percentage
+const DYNAMIC_COLORS = [
+  { max: 50,  bg: '#1a7a52', text: '#fff' },  // green — safe
+  { max: 75,  bg: '#a07610', text: '#fff' },  // amber — caution
+  { max: 90,  bg: '#c46a15', text: '#fff' },  // orange — warning
+  { max: 100, bg: '#c43a31', text: '#fff' },  // red — danger
+];
+
+function getDynamicColor(pct) {
+  if (pct == null || pct < 0) pct = 0;
+  for (const level of DYNAMIC_COLORS) {
+    if (pct <= level.max) return { bg: level.bg, text: level.text };
+  }
+  return DYNAMIC_COLORS[DYNAMIC_COLORS.length - 1];
+}
+
+module.exports = { get, update, MENUBAR_ITEMS, DEFAULTS, PILL_COLORS, DYNAMIC_COLORS, getDynamicColor };
