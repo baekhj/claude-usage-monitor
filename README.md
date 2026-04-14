@@ -5,7 +5,7 @@
 ![Version](https://img.shields.io/github/v/release/baekhj/claude-usage-monitor?label=version)
 ![Platform](https://img.shields.io/badge/platform-macOS%20|%20Windows-blue?logo=electron)
 ![Electron](https://img.shields.io/badge/Electron-41-47848F?logo=electron)
-![License](https://img.shields.io/badge/license-ISC-green)
+[![License: CC BY-NC 4.0](https://img.shields.io/badge/license-CC%20BY--NC%204.0-lightgrey.svg)](https://creativecommons.org/licenses/by-nc/4.0/)
 
 <p align="center">
   <img src="assets/screenshot-menubar.png" alt="Menubar Pills" height="44">
@@ -177,4 +177,12 @@ The approach of reading rate-limit utilization from Messages API response header
 
 ## License
 
-ISC
+<a rel="license" href="https://creativecommons.org/licenses/by-nc/4.0/">
+  <img alt="Creative Commons License" src="https://licensebuttons.net/l/by-nc/4.0/88x31.png" />
+</a>
+
+This work is licensed under a [Creative Commons Attribution-NonCommercial 4.0 International License](https://creativecommons.org/licenses/by-nc/4.0/).
+
+- **Free to use, share, and modify** for non-commercial purposes
+- **Attribution required** — credit the original author
+- **Commercial use prohibited** — selling or using in commercial products/services is not allowed
