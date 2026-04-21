@@ -5,7 +5,7 @@
 - Claude Code 토큰 사용량 실시간 모니터링 (5H 슬라이딩 윈도우 / 7D 합계)
 - Pill 스타일 메뉴바 표시, 그룹별 색상 커스터마이징
 - GitHub: baekhj/claude-usage-monitor
-- 현재 버전: v1.6.0
+- 현재 버전: v1.6.1
 
 ## 아키텍처
 
@@ -142,6 +142,7 @@ open "dist/mac-arm64/Claude Usage Monitor.app"
 - 릴리즈 빌드: `npm run build:arm64` (arm64 + x64 zip 모두 생성)
 
 ## 최근 변경 이력
+- **v1.6.1**: 인앱 업데이터 버그 수정 — 다운로드 경로를 `os.tmpdir()` → `app.getPath('userData')/updates/` 로 변경 (macOS 주기적 tmp 청소로 install 시 zip 사라지던 문제). `installUpdate`에 파일 존재 검사 추가 → 누락 시 `UPDATE_FILE_MISSING` 에러, main이 `updateState`를 idle로 리셋해 Download 버튼 재표시
 - **v1.6.0**: 사용률 기반 동적 pill 색상 (초록→노랑→주황→빨강), 설정에서 ON/OFF 가능
 - **v1.5.0**: 팝업 다크/라이트 테마 선택, Worker Thread + mtime 캐시 성능 개선
 - **v1.4.6**: 남은 시간 24시간 초과 시 일 단위 표시 (4d2h30m)

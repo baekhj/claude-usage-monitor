@@ -607,7 +607,20 @@ ipcMain.handle('download-update', async () => {
 });
 
 ipcMain.handle('get-update-state', () => updateState);
-ipcMain.handle('install-update', (event, filePath) => installUpdate(filePath));
+ipcMain.handle('install-update', async (event, filePath) => {
+  try {
+    return await installUpdate(filePath);
+  } catch (e) {
+    // Downloaded zip was cleaned up by the OS between download and install.
+    // Reset state so the UI shows the Download button again.
+    if (e && e.code === 'UPDATE_FILE_MISSING') {
+      updateState = { status: 'idle', progress: null, result: null, error: null };
+      if (popupWindow && !popupWindow.isDestroyed()) popupWindow.webContents.send('update-state', updateState);
+      if (dashboardWindow && !dashboardWindow.isDestroyed()) dashboardWindow.webContents.send('update-state', updateState);
+    }
+    throw e;
+  }
+});
 ipcMain.handle('open-release-page', () => openReleasePage());
 
 // ── App lifecycle ──

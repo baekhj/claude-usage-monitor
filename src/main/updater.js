@@ -2,7 +2,6 @@ const https = require('https');
 const http = require('http');
 const fs = require('fs');
 const path = require('path');
-const os = require('os');
 const { app, Notification, shell } = require('electron');
 const { execFile, spawn } = require('child_process');
 
@@ -13,6 +12,11 @@ let updateInfo = null;
 
 function getCurrentVersion() {
   return app.getVersion();
+}
+
+// Persistent update cache dir (not /var/folders/.../T/ which macOS auto-cleans).
+function getUpdateCacheDir() {
+  return path.join(app.getPath('userData'), 'updates');
 }
 
 function fetchJSON(url) {
@@ -154,17 +158,24 @@ async function downloadUpdate(onProgress) {
   const asset = getMatchingAsset(updateInfo.assets);
   if (!asset) throw new Error(`No matching asset for ${process.arch}`);
 
-  const tmpDir = path.join(os.tmpdir(), 'claude-usage-update');
-  if (fs.existsSync(tmpDir)) fs.rmSync(tmpDir, { recursive: true });
-  fs.mkdirSync(tmpDir, { recursive: true });
+  const cacheDir = getUpdateCacheDir();
+  if (fs.existsSync(cacheDir)) fs.rmSync(cacheDir, { recursive: true });
+  fs.mkdirSync(cacheDir, { recursive: true });
 
-  const filePath = path.join(tmpDir, asset.name);
+  const filePath = path.join(cacheDir, asset.name);
   await downloadFile(asset.browser_download_url, filePath, onProgress);
 
-  return { filePath, tmpDir, isDmg: asset.name.toLowerCase().endsWith('.dmg') };
+  return { filePath, tmpDir: cacheDir, isDmg: asset.name.toLowerCase().endsWith('.dmg') };
 }
 
 async function installUpdate(filePath) {
+  // File may have been wiped (OS tmp cleaner, reboot, user cleanup). Fail fast with a clear, actionable error.
+  if (!filePath || !fs.existsSync(filePath)) {
+    const err = new Error('Downloaded file is missing — please click Download again.');
+    err.code = 'UPDATE_FILE_MISSING';
+    throw err;
+  }
+
   const isDmg = filePath.toLowerCase().endsWith('.dmg');
   const tmpDir = path.dirname(filePath);
 
