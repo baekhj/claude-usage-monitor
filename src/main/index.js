@@ -407,7 +407,13 @@ function buildTraySegments(stats) {
     }
   }
 
-  const hasPill = (g) => pillColors[g] && pillColors[g] !== 'none';
+  const dynamicEnabled = cfg.menubar.dynamicColors !== false;
+  const hasPill = (g) => {
+    // Dynamic 모드 ON 이면 5h/7d는 사용자가 static 색상을 설정하지 않았더라도
+    // 항상 pill을 그려서 사용률 기반 색상이 표시되도록 한다.
+    if (dynamicEnabled && (g === '5h' || g === '7d')) return true;
+    return pillColors[g] && pillColors[g] !== 'none';
+  };
   const segments = [];
   if (planValue) segments.push({ text: planValue, pill: hasPill('plan'), group: 'plan' });
   for (const item of general) segments.push({ text: item, pill: false, group: 'general' });
@@ -460,12 +466,26 @@ async function updateTrayPill(segments) {
 
     if (width <= 0) return false;
 
+    const logicalW = Math.ceil(width) + 2;
+    const logicalH = 22;
     const image = await pillWindow.webContents.capturePage({
-      x: 0, y: 0, width: Math.ceil(width) + 2, height: 22
+      x: 0, y: 0, width: logicalW, height: logicalH
+    });
+
+    // Retina 보정: capturePage가 반환하는 NativeImage의 scaleFactor 메타데이터가
+    // 잘못 들어와 tray가 물리 픽셀을 논리 포인트로 그려 2배 확대되는 문제.
+    // 실제 비트맵 크기와 요청한 논리 크기 비율로 scaleFactor를 명시적으로 다시 부여.
+    const bitmap = image.toBitmap();
+    const sz = image.getSize();
+    const scale = sz.height > 0 ? sz.height / logicalH : 1;
+    const finalImage = nativeImage.createFromBuffer(bitmap, {
+      width: sz.width,
+      height: sz.height,
+      scaleFactor: scale,
     });
 
     tray.setTitle('');
-    tray.setImage(image);
+    tray.setImage(finalImage);
     return true;
   } catch (e) {
     return false;
